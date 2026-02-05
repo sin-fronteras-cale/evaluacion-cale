@@ -1,8 +1,25 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
+        const now = new Date();
+
+        // Update users whose Pro status has expired
+        await prisma.user.updateMany({
+            where: {
+                isPro: true,
+                proExpiresAt: {
+                    lt: now
+                }
+            },
+            data: {
+                isPro: false
+            }
+        });
+
         const users = await prisma.user.findMany();
         return NextResponse.json(users);
     } catch (e) {

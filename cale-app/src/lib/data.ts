@@ -16,6 +16,7 @@ export interface User {
   role: 'admin' | 'user';
   password?: string;
   isPro?: boolean;
+  proExpiresAt?: string;
 }
 
 export interface ExamResult {

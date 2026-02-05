@@ -5,8 +5,10 @@ import { useState, useEffect } from 'react';
 import { storage } from '@/lib/storage';
 import { User } from '@/lib/data';
 import { Modal } from '@/components/Modal';
-import { LogIn, UserPlus, Shield, ChevronRight } from 'lucide-react';
+import { LogIn, UserPlus, Shield, ChevronRight, BookOpen, Zap, Award } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 export default function LandingPage() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -65,82 +67,219 @@ export default function LandingPage() {
     router.push('/dashboard');
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8 } }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden">
-      {/* Decorative blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[100px] opacity-50" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-100 rounded-full blur-[100px] opacity-50" />
-
-      <main className="z-10 w-full max-w-4xl grid md:grid-cols-2 gap-12 items-center">
-        <div className="animate-fade-in order-2 md:order-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-sm font-medium mb-6">
-            <Shield size={14} />
-            Evaluación Cale Profesional
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
-            Conduce tu <span className="text-blue-600">Futuro</span> Sin Fronteras.
-          </h1>
-          <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-            Prepárate para tu examen de conducción con nuestra plataforma de evaluación interactiva. A2, B1 y C1.
-          </p>
-
-          <div className="flex flex-wrap gap-4">
+    <div className="bg-white overflow-hidden">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-xl font-semibold text-gray-900"
+          >
+            CALE
+          </motion.div>
+          <div className="hidden md:flex items-center gap-8">
+            <button
+              onClick={() => { setIsLoginOpen(true); setIsAdminMode(false); setError(''); }}
+              className="text-gray-600 hover:text-gray-900 transition-colors font-medium"
+            >
+              Iniciar Sesión
+            </button>
             <button
               onClick={() => { setIsRegisterOpen(true); setError(''); }}
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
+              className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-medium"
             >
-              Registrarse <UserPlus size={18} />
+              Registrarse
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-6">
+        <motion.div
+          className="max-w-4xl mx-auto text-center space-y-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div variants={itemVariants}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-sm font-semibold mb-6">
+              <Zap size={16} />
+              Plataforma de Evaluación CALE
+            </div>
+          </motion.div>
+
+          <motion.h1
+            variants={itemVariants}
+            className="text-5xl md:text-7xl font-bold text-gray-900 leading-tight tracking-tight"
+          >
+            Domina tu examen de
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">
+              conducción
+            </span>
+          </motion.h1>
+
+          <motion.p
+            variants={itemVariants}
+            className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed"
+          >
+            Prepárate para obtener tu licencia de conducción con nuestra plataforma interactiva. Categorías A2, B1 y C1 con evaluaciones completas y análisis detallado de resultados.
+          </motion.p>
+
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-col sm:flex-row gap-4 justify-center pt-4"
+          >
+            <button
+              onClick={() => { setIsRegisterOpen(true); setError(''); }}
+              className="px-8 py-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-semibold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
+            >
+              Comenzar Ahora
             </button>
             <button
               onClick={() => { setIsLoginOpen(true); setIsAdminMode(false); setError(''); }}
-              className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-semibold transition-all flex items-center gap-2"
+              className="px-8 py-4 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-all font-semibold text-lg"
             >
-              Iniciar Sesión <LogIn size={18} />
+              Iniciar Sesión
             </button>
-          </div>
+          </motion.div>
+        </motion.div>
+      </section>
 
-          <div className="mt-12 pt-8 border-t border-slate-200 flex gap-8">
-            <div>
-              <p className="text-2xl font-bold text-slate-900">40</p>
-              <p className="text-sm text-slate-500">Preguntas</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">A2, B1, C1</p>
-              <p className="text-sm text-slate-500">Categorías</p>
-            </div>
-          </div>
-        </div>
+      {/* Stats Section */}
+      <section className="py-20 px-6 border-t border-gray-100">
+        <motion.div
+          className="max-w-4xl mx-auto grid md:grid-cols-3 gap-12"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <motion.div
+            className="text-center"
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">40+</div>
+            <p className="text-gray-600 font-medium">Preguntas por categoría</p>
+          </motion.div>
+          <motion.div
+            className="text-center"
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">3</div>
+            <p className="text-gray-600 font-medium">Niveles de dificultad</p>
+          </motion.div>
+          <motion.div
+            className="text-center"
+            whileHover={{ y: -5 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">100%</div>
+            <p className="text-gray-600 font-medium">Análisis de resultados</p>
+          </motion.div>
+        </motion.div>
+      </section>
 
-        <div className="relative order-1 md:order-2">
-          <div className="aspect-square bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-amber-500/5" />
-            <div className="h-full flex flex-col justify-between relative z-10">
-              <div className="flex justify-between items-start">
-                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                  <Shield size={24} />
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Escuela de Conducción</p>
-                  <p className="text-xl font-bold text-slate-900">Sin Fronteras</p>
-                </div>
-              </div>
+      {/* Features Section */}
+      <section className="py-20 px-6">
+        <motion.div
+          className="max-w-4xl mx-auto"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <h2 className="text-4xl font-bold text-gray-900 text-center mb-16">
+            Todo lo que necesitas
+          </h2>
 
-              <div className="space-y-4">
-                <div className="h-4 w-3/4 bg-slate-100 rounded-full animate-pulse" />
-                <div className="h-4 w-1/2 bg-slate-100 rounded-full animate-pulse" />
-                <div className="h-4 w-2/3 bg-slate-100 rounded-full animate-pulse" />
-              </div>
-
-              <button
-                onClick={() => { setIsLoginOpen(true); setIsAdminMode(true); setError(''); }}
-                className="w-full py-4 text-sm font-medium text-slate-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1 group"
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: BookOpen,
+                title: 'Preguntas Reales',
+                description: 'Basadas en exámenes oficiales de conducción'
+              },
+              {
+                icon: Award,
+                title: 'Certificación',
+                description: 'Obtén reportes detallados de tu desempeño'
+              },
+              {
+                icon: Zap,
+                title: 'Análisis Inteligente',
+                description: 'Identifica tus áreas débiles y mejora'
+              }
+            ].map((feature, i) => (
+              <motion.div
+                key={i}
+                className="p-8 rounded-2xl bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all"
+                whileHover={{ y: -10, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+                transition={{ duration: 0.3 }}
               >
-                Acceso Administrador <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
+                <feature.icon className="w-12 h-12 text-blue-600 mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
           </div>
+        </motion.div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-6 bg-gray-900 text-white">
+        <motion.div
+          className="max-w-3xl mx-auto text-center space-y-8"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-4xl md:text-5xl font-bold">
+            ¿Listo para empezar?
+          </h2>
+          <p className="text-xl text-gray-300">
+            Únete a miles de estudiantes que ya aprobaron su examen CALE
+          </p>
+          <button
+            onClick={() => { setIsRegisterOpen(true); setError(''); }}
+            className="px-8 py-4 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-all font-semibold text-lg inline-block"
+          >
+            Registrarse Gratis
+          </button>
+        </motion.div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-8 px-6 border-t border-gray-100">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-gray-600 text-sm">© 2026 CALE - Escuela Sin Fronteras</p>
+          <button
+            onClick={() => { setIsLoginOpen(true); setIsAdminMode(true); setError(''); }}
+            className="text-gray-400 hover:text-gray-600 transition-colors text-sm font-medium flex items-center gap-1 group"
+          >
+            Acceso Admin <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          </button>
         </div>
-      </main>
+      </footer>
 
       {/* Login Modal */}
       <Modal
@@ -151,24 +290,24 @@ export default function LandingPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Correo Electrónico</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">Correo Electrónico</label>
             <input
               type="email" required
               value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-900 outline-none transition-all"
               placeholder="correo@ejemplo.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">Contraseña</label>
             <input
               type="password" required
               value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-900 outline-none transition-all"
               placeholder="••••••••"
             />
           </div>
-          <button className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-100 transition-all mt-4">
+          <button className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-semibold transition-all mt-4">
             Ingresar
           </button>
         </form>
@@ -183,33 +322,33 @@ export default function LandingPage() {
         <form onSubmit={handleRegister} className="space-y-4">
           {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">Nombre Completo</label>
             <input
               type="text" required
               value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-900 outline-none transition-all"
               placeholder="Juan Perez"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Correo Electrónico</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">Correo Electrónico</label>
             <input
               type="email" required
               value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-900 outline-none transition-all"
               placeholder="correo@ejemplo.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+            <label className="block text-sm font-medium text-gray-900 mb-1">Contraseña</label>
             <input
               type="password" required
               value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-900 outline-none transition-all"
               placeholder="••••••••"
             />
           </div>
-          <button className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-100 transition-all mt-4">
+          <button className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-semibold transition-all mt-4">
             Empezar Evaluación
           </button>
         </form>

@@ -4,6 +4,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { Users, BookOpen, BarChart3, LogOut, Shield } from 'lucide-react';
 import { storage } from '@/lib/storage';
+import Image from 'next/image';
 
 const menuItems = [
     { icon: <BarChart3 size={20} />, label: 'Analytics', href: '/admin' },
@@ -23,7 +24,9 @@ export const AdminSidebar = () => {
     return (
         <div className="w-64 bg-slate-900 h-screen sticky top-0 flex flex-col p-6 text-white shrink-0">
             <div className="flex items-center gap-3 mb-12">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold">SF</div>
+                <div className="relative w-10 h-10 bg-white rounded-xl overflow-hidden shrink-0">
+                    <Image src="/logo.jpg" alt="Logo" fill className="object-contain" />
+                </div>
                 <div>
                     <h2 className="font-bold text-lg leading-none">Admin</h2>
                     <p className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">Sin Fronteras</p>

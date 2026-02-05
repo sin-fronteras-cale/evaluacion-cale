@@ -18,6 +18,7 @@ function ExamContent() {
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [timeLeft, setTimeLeft] = useState(3000); // Default to 50 mins
     const [isFinished, setIsFinished] = useState(false);
+    const [isPro, setIsPro] = useState(false);
 
     const shuffleArray = <T,>(array: T[]): T[] => {
         const shuffled = [...array];
@@ -31,13 +32,17 @@ function ExamContent() {
     useEffect(() => {
         const loadQuestions = async () => {
             const user = storage.getCurrentUser();
+            if (!user) return;
+            
+            setIsPro(user.isPro || false);
+            
             const q = await storage.getQuestions(category);
 
             // 1. Shuffle all available questions
             const shuffledPool = shuffleArray(q);
 
-            // 2. Select amount based on Pro status
-            const count = user?.isPro ? 40 : 15;
+            // 2. Select amount based on PRO status
+            const count = user.isPro ? 40 : 15; // 40 for PRO, 15 for trial
             const selected = shuffledPool.slice(0, count);
 
             // 3. Shuffle options for each selected question
@@ -56,8 +61,9 @@ function ExamContent() {
 
             setQuestions(finalized);
 
-            // 4. Set timer based on Pro status
-            setTimeLeft(user?.isPro ? 3000 : 1200); // 50m vs 20m
+            // 4. Set timer based on PRO status
+            // 50 minutes (3000 seconds) for PRO, 15 minutes (900 seconds) for trial
+            setTimeLeft(user.isPro ? 3000 : 900);
         };
         loadQuestions();
 
@@ -146,7 +152,7 @@ function ExamContent() {
                             <Shield size={20} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase">Categoría {category}</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase">Categoría {category} {!isPro && '(PRUEBA - 15 preguntas)'}</p>
                             <h1 className="font-bold text-slate-900">Evaluación Sin Fronteras</h1>
                         </div>
                     </div>

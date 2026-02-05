@@ -17,8 +17,9 @@ model User {
   email    String   @unique
   role     String   // 'admin' | 'user'
   password String?
-  isPro    Boolean  @default(false)
-  results  Result[]
+  isPro        Boolean   @default(false)
+  proExpiresAt DateTime?
+  results      Result[]
 }
 
 model Question {
@@ -39,5 +40,5 @@ model Result {
   totalQuestions Int
   failedQuestions Json    // Array of { questionId: string, userAnswer: number }
   
-  user           User     @relation(fields: [userId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

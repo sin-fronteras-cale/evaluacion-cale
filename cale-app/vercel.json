@@ -1,0 +1,12 @@
+{
+    "framework": "nextjs",
+    "cleanUrls": true,
+    "regions": [
+        "iad1"
+    ],
+    "public": false,
+    "github": {
+        "enabled": true,
+        "silent": true
+    }
+}
