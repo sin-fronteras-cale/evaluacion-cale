@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const token = typeof body?.token === 'string' ? body.token : '';
+    const token = typeof body?.token === 'string' ? body.token.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
 
     if (!token || !password || password.length < 6) {
