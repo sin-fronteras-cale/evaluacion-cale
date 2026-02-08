@@ -1,5 +1,7 @@
 import ResetPasswordForm from './ResetPasswordForm';
 
+export const dynamic = 'force-dynamic';
+
 type ResetPasswordPageProps = {
   searchParams?: {
     token?: string;
