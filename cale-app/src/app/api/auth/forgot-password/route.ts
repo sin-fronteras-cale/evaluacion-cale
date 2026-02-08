@@ -6,10 +6,11 @@ import { sendPasswordResetEmail } from '@/lib/email';
 const TOKEN_TTL_MS = 1000 * 60 * 60;
 
 const getAppUrl = (req: Request) => {
+  const proto = req.headers.get('x-forwarded-proto') ?? 'https';
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
+  if (host) return `${proto}://${host}`;
   if (process.env.APP_URL) return process.env.APP_URL.trim().replace(/\/+$/, '');
-  const proto = req.headers.get('x-forwarded-proto') ?? 'http';
-  const host = req.headers.get('host');
-  return host ? `${proto}://${host}` : 'http://localhost:3000';
+  return 'http://localhost:3000';
 };
 
 export async function POST(req: Request) {
