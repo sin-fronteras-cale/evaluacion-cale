@@ -39,7 +39,7 @@ export default function AdminDashboard() {
             const results = await storage.getResults();
             const topFailed = await storage.getTopFailedQuestions(20);
 
-            const passCount = results.filter(r => r.score >= 32).length;
+            const passCount = results.filter(r => r.score >= Math.ceil(r.totalQuestions * 0.8)).length;
 
             setStats({
                 usersCount: users.length,

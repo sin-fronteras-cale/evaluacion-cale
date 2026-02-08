@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Users, BookOpen, BarChart3, LogOut, Shield } from 'lucide-react';
+import { Users, BookOpen, BarChart3, LogOut, CreditCard } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import Image from 'next/image';
 
@@ -10,6 +10,7 @@ const menuItems = [
     { icon: <BarChart3 size={20} />, label: 'Analytics', href: '/admin' },
     { icon: <Users size={20} />, label: 'Usuarios', href: '/admin/users' },
     { icon: <BookOpen size={20} />, label: 'Preguntas', href: '/admin/questions' },
+    { icon: <CreditCard size={20} />, label: 'Pagos', href: '/admin/payments' },
 ];
 
 export const AdminSidebar = () => {

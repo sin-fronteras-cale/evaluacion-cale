@@ -15,6 +15,12 @@ export interface User {
   email: string;
   role: 'admin' | 'user';
   password?: string;
+  phone?: string;
+  idType?: string;
+  idNumber?: string;
+  city?: string;
+  department?: string;
+  policyAcceptedAt?: string;
   isPro?: boolean;
   proExpiresAt?: string;
 }
@@ -27,6 +33,7 @@ export interface ExamResult {
   date: string;
   score: number;
   totalQuestions: number;
+  questionIds?: string[];
   failedQuestions: {
     questionId: string;
     userAnswer: number;

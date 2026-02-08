@@ -20,6 +20,12 @@ function ExamContent() {
     const [isFinished, setIsFinished] = useState(false);
     const [isPro, setIsPro] = useState(false);
 
+    const isSameLocalDay = (a: Date, b: Date) => {
+        return a.getFullYear() === b.getFullYear()
+            && a.getMonth() === b.getMonth()
+            && a.getDate() === b.getDate();
+    };
+
     const shuffleArray = <T,>(array: T[]): T[] => {
         const shuffled = [...array];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -29,20 +35,46 @@ function ExamContent() {
         return shuffled;
     };
 
+    const getRecentQuestionIds = async (userId: string, category: Category, attempts: number) => {
+        const results = await storage.getResults();
+        return results
+            .filter(r => r.userId === userId && r.category === category)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, attempts)
+            .flatMap(r => r.questionIds ?? r.failedQuestions.map(f => f.questionId));
+    };
+
     useEffect(() => {
         const loadQuestions = async () => {
             const user = storage.getCurrentUser();
             if (!user) return;
             
             setIsPro(user.isPro || false);
+
+            if (!user.isPro) {
+                const allResults = await storage.getResults();
+                const today = new Date();
+                const hasAttemptToday = allResults.some(r =>
+                    r.userId === user.id && isSameLocalDay(new Date(r.date), today)
+                );
+                if (hasAttemptToday) {
+                    router.push('/dashboard?limit=1');
+                    return;
+                }
+            }
             
             const q = await storage.getQuestions(category);
+            const count = user.isPro ? 40 : 15; // 40 for PRO, 15 for trial
+
+            const recentIds = await getRecentQuestionIds(user.id, category, 3);
+            const avoidSet = new Set(recentIds);
+            const filteredPool = q.filter(item => !avoidSet.has(item.id));
+            const poolToUse = filteredPool.length >= count ? filteredPool : q;
 
             // 1. Shuffle all available questions
-            const shuffledPool = shuffleArray(q);
+            const shuffledPool = shuffleArray(poolToUse);
 
             // 2. Select amount based on PRO status
-            const count = user.isPro ? 40 : 15; // 40 for PRO, 15 for trial
             const selected = shuffledPool.slice(0, count);
 
             // 3. Shuffle options for each selected question
@@ -107,6 +139,7 @@ function ExamContent() {
             date: new Date().toISOString(),
             score,
             totalQuestions: questions.length,
+            questionIds: questions.map(q => q.id),
             failedQuestions
         };
 

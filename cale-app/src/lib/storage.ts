@@ -2,7 +2,8 @@
 import { Question, User, ExamResult, Category } from './data';
 
 const STORAGE_KEYS = {
-    CURRENT_USER: 'cale_current_user'
+    CURRENT_USER: 'cale_current_user',
+    RESULTS: 'cale_results'
 };
 
 export const storage = {
@@ -67,16 +68,34 @@ export const storage = {
 
     // Results
     getResults: async (): Promise<ExamResult[]> => {
-        const res = await fetch('/api/results');
-        if (!res.ok) return [];
-        return res.json();
+        try {
+            const res = await fetch('/api/results');
+            if (res.ok) return res.json();
+        } catch (e) {
+            console.error('Failed to load results from API', e);
+        }
+
+        if (typeof window === 'undefined') return [];
+        const raw = localStorage.getItem(STORAGE_KEYS.RESULTS);
+        return raw ? JSON.parse(raw) : [];
     },
     saveResult: async (result: ExamResult) => {
-        await fetch('/api/results', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(result)
-        });
+        try {
+            const res = await fetch('/api/results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(result)
+            });
+            if (res.ok) return;
+        } catch (e) {
+            console.error('Failed to save result to API', e);
+        }
+
+        if (typeof window === 'undefined') return;
+        const raw = localStorage.getItem(STORAGE_KEYS.RESULTS);
+        const existing: ExamResult[] = raw ? JSON.parse(raw) : [];
+        const next = [...existing, result];
+        localStorage.setItem(STORAGE_KEYS.RESULTS, JSON.stringify(next));
     },
 
     // Analytics

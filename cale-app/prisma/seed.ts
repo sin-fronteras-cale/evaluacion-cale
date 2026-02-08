@@ -16,13 +16,29 @@ async function main() {
         for (const user of users) {
             await prisma.user.upsert({
                 where: { id: user.id },
-                update: {},
+                update: {
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    password: user.password || undefined,
+                    phone: user.phone || null,
+                    idType: user.idType || null,
+                    idNumber: user.idNumber || null,
+                    city: user.city || null,
+                    department: user.department || null,
+                    isPro: user.isPro || false,
+                },
                 create: {
                     id: user.id,
                     name: user.name,
                     email: user.email,
                     role: user.role,
                     password: user.password,
+                    phone: user.phone || null,
+                    idType: user.idType || null,
+                    idNumber: user.idNumber || null,
+                    city: user.city || null,
+                    department: user.department || null,
                     isPro: user.isPro || false,
                 },
             });
@@ -78,6 +94,41 @@ async function main() {
                     totalQuestions: r.totalQuestions,
                     failedQuestions: r.failedQuestions,
                 },
+            });
+        }
+    }
+
+    // 4. Migrate Payments (optional)
+    const paymentsPath = path.join(dataDir, 'payments.json');
+    if (fs.existsSync(paymentsPath)) {
+        const payments = JSON.parse(fs.readFileSync(paymentsPath, 'utf-8'));
+        console.log(`Seeding ${payments.length} payments...`);
+        for (const p of payments) {
+            await prisma.payment.upsert({
+                where: { transactionId: p.transactionId },
+                update: {
+                    reference: p.reference,
+                    status: p.status,
+                    amountInCents: p.amountInCents,
+                    currency: p.currency,
+                    paymentMethodType: p.paymentMethodType || null,
+                    customerEmail: p.customerEmail || null,
+                    userId: p.userId || null,
+                    userName: p.userName || null,
+                    raw: p.raw
+                },
+                create: {
+                    transactionId: p.transactionId,
+                    reference: p.reference,
+                    status: p.status,
+                    amountInCents: p.amountInCents,
+                    currency: p.currency,
+                    paymentMethodType: p.paymentMethodType || null,
+                    customerEmail: p.customerEmail || null,
+                    userId: p.userId || null,
+                    userName: p.userName || null,
+                    raw: p.raw
+                }
             });
         }
     }

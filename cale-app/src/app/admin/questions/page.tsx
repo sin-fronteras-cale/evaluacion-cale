@@ -6,11 +6,13 @@ import { storage } from '@/lib/storage';
 import { Question, Category } from '@/lib/data';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { Modal } from '@/components/Modal';
-import { Plus, Edit2, Trash2, Filter } from 'lucide-react';
+import { Plus, Edit2, Trash2, Filter, Search } from 'lucide-react';
 
 export default function QuestionManagement() {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [categoryFilter, setCategoryFilter] = useState<Category | 'ALL'>('ALL');
+    const [typeFilter, setTypeFilter] = useState<'ALL' | 'Conocimiento' | 'Actitudinal'>('ALL');
+    const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentQuestion, setCurrentQuestion] = useState<Partial<Question> | null>(null);
 
@@ -21,9 +23,33 @@ export default function QuestionManagement() {
         loadQuestions();
     }, []);
 
-    const filteredQuestions = categoryFilter === 'ALL'
-        ? questions
-        : questions.filter(q => q.category === categoryFilter);
+    const categoryLabels: Record<Category, string> = {
+        A2: 'Moto A2',
+        B1: 'Carro B1',
+        C1: 'Publico C1'
+    };
+
+    const getQuestionType = (id: string) => {
+        const match = id.match(/-(\d+)$/);
+        const num = match ? parseInt(match[1], 10) : 0;
+        if (num >= 1 && num <= 70) return 'Conocimiento';
+        if (num >= 71 && num <= 100) return 'Actitudinal';
+        return 'Sin tipo';
+    };
+
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const filteredQuestions = questions.filter(q => {
+        if (categoryFilter !== 'ALL' && q.category !== categoryFilter) return false;
+        if (typeFilter !== 'ALL' && getQuestionType(q.id) !== typeFilter) return false;
+        if (!normalizedSearch) return true;
+        const haystack = [
+            q.text,
+            q.category,
+            categoryLabels[q.category],
+            ...q.options
+        ].join(' ').toLowerCase();
+        return haystack.includes(normalizedSearch);
+    });
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,12 +101,34 @@ export default function QuestionManagement() {
                 </header>
 
                 <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-2">
                             <Filter size={18} className="text-slate-400" />
                             <span className="text-sm font-bold text-slate-500 uppercase">Filtrar por:</span>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+                            <div className="relative">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Buscar preguntas..."
+                                    className="w-full md:w-64 pl-9 pr-3 py-2 rounded-full text-sm border border-slate-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                {['ALL', 'Conocimiento', 'Actitudinal'].map(type => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setTypeFilter(type as any)}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${typeFilter === type ? 'bg-blue-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        {type === 'ALL' ? 'Todos' : type}
+                                    </button>
+                                ))}
+                            </div>
                             {['ALL', 'A2', 'B1', 'C1'].map(cat => (
                                 <button
                                     key={cat}
@@ -99,9 +147,17 @@ export default function QuestionManagement() {
                             <div key={q.id} className="p-8 hover:bg-slate-50/50 transition-colors group">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1">
-                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded uppercase mb-2 inline-block">
-                                            {q.category}
-                                        </span>
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded uppercase inline-block">
+                                                {q.category}
+                                            </span>
+                                            <span className="text-xs font-semibold text-slate-500">
+                                                Categoria: {categoryLabels[q.category]}
+                                            </span>
+                                            <span className="text-xs font-semibold text-slate-500">
+                                                Tipo: {getQuestionType(q.id)}
+                                            </span>
+                                        </div>
                                         <h3 className="text-lg font-bold text-slate-900 mb-4">{q.text}</h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                                             {q.options.map((opt, i) => (

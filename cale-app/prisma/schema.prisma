@@ -17,9 +17,17 @@ model User {
   email    String   @unique
   role     String   // 'admin' | 'user'
   password String?
+  phone       String?
+  idType      String?
+  idNumber    String?
+  city        String?
+  department  String?
+  policyAcceptedAt DateTime?
   isPro        Boolean   @default(false)
   proExpiresAt DateTime?
   results      Result[]
+  payments     Payment[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Question {
@@ -41,4 +49,39 @@ model Result {
   failedQuestions Json    // Array of { questionId: string, userAnswer: number }
   
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  transactionId     String   @unique
+  reference         String
+  status            String
+  amountInCents     Int
+  currency          String
+  paymentMethodType String?
+  customerEmail     String?
+  userId            String?
+  userName          String?
+  createdAt         DateTime @default(now())
+  raw               Json
+
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model AppSetting {
+  key       String   @id
+  valueInt  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
