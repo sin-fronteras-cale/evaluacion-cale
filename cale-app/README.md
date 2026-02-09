@@ -2,6 +2,8 @@
 
 Sistema completo de evaluación para exámenes de conducción en Colombia. Categorías A2, B1 y C1 con evaluaciones interactivas, sistema de pagos y análisis de resultados.
 
+**🌐 LIVE**: https://evaluacion-cale.vercel.app | **Status**: ✅ Producción Active
+
 [![Next.js](https://img.shields.io/badge/Next.js-16.1-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.22-success)](https://www.prisma.io/)
