@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -61,13 +62,24 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: true });
         }
 
+        // Hash password if provided and not already hashed
+        let hashedPassword: string | undefined = undefined;
+        if (body.password) {
+            if (body.password.startsWith('$2')) {
+                // Already hashed
+                hashedPassword = body.password;
+            } else {
+                hashedPassword = await bcrypt.hash(body.password, 10);
+            }
+        }
+
         const user = await prisma.user.upsert({
             where: { id: body.id },
             update: {
                 name: body.name,
                 email: body.email,
                 role: body.role,
-                password: body.password || undefined,
+                password: hashedPassword,
                 phone: body.phone,
                 idType: body.idType,
                 idNumber: body.idNumber,
@@ -81,7 +93,7 @@ export async function POST(req: Request) {
                 name: body.name,
                 email: body.email,
                 role: body.role,
-                password: body.password,
+                password: hashedPassword,
                 phone: body.phone,
                 idType: body.idType,
                 idNumber: body.idNumber,

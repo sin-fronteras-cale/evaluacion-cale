@@ -1,9 +1,28 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+
+// Rate limit: 10 requests per 15 minutes per IP
+const RATE_LIMIT = {
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10
+};
 
 export async function POST(req: Request) {
   try {
+    // Rate limiting
+    const clientIp = getClientIp(req);
+    const rateLimitResult = checkRateLimit(`reset-password:${clientIp}`, RATE_LIMIT);
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos. Intenta de nuevo mas tarde.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const token = typeof body?.token === 'string' ? body.token.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
@@ -27,9 +46,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Token invalido o vencido' }, { status: 400 });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     await prisma.user.update({
       where: { id: record.userId },
-      data: { password }
+      data: { password: hashedPassword }
     });
 
     await prisma.passwordResetToken.updateMany({

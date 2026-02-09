@@ -2,8 +2,15 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendPasswordResetEmail } from '@/lib/email';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 const TOKEN_TTL_MS = 1000 * 60 * 60;
+
+// Rate limit: 5 requests per 15 minutes per IP
+const RATE_LIMIT = {
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 5
+};
 
 const getAppUrl = (req: Request) => {
   const proto = req.headers.get('x-forwarded-proto') ?? 'https';
@@ -15,6 +22,17 @@ const getAppUrl = (req: Request) => {
 
 export async function POST(req: Request) {
   try {
+    // Rate limiting
+    const clientIp = getClientIp(req);
+    const rateLimitResult = checkRateLimit(`forgot-password:${clientIp}`, RATE_LIMIT);
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos. Intenta de nuevo mas tarde.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
 

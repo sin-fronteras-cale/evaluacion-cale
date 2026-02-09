@@ -39,14 +39,26 @@ export default function LandingPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const users = await storage.getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
+    setError('');
+    
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-    if (user) {
-      storage.setCurrentUser(user);
-      router.push(user.role === 'admin' ? '/admin' : '/dashboard');
-    } else {
-      setError('Credenciales incorrectas');
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data?.error || 'Credenciales incorrectas');
+        return;
+      }
+
+      storage.setCurrentUser(data.user);
+      router.push(data.user.role === 'admin' ? '/admin' : '/dashboard');
+    } catch (err) {
+      setError('Error al iniciar sesión');
     }
   };
 
