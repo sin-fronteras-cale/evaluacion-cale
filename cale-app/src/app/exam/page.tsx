@@ -3,7 +3,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { storage } from '@/lib/storage';
+import { authClient } from '@/lib/auth-client';
 import { Question, ExamResult, Category } from '@/lib/data';
 import { ChevronLeft, ChevronRight, Clock, Shield, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,39 +36,59 @@ function ExamContent() {
     };
 
     const getRecentQuestionIds = async (userId: string, category: Category, attempts: number) => {
-        const results = await storage.getResults();
+        const res = await fetch('/api/results', { credentials: 'include' });
+        if (!res.ok) return [];
+        const data = await res.json();
+        const results = data.results || [];
         return results
-            .filter(r => r.userId === userId && r.category === category)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .filter((r: ExamResult) => r.userId === userId && r.category === category)
+            .sort((a: ExamResult, b: ExamResult) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, attempts)
-            .flatMap(r => r.questionIds ?? r.failedQuestions.map(f => f.questionId));
+            .flatMap((r: ExamResult) => r.questionIds ?? r.failedQuestions.map(f => f.questionId));
     };
 
     useEffect(() => {
         const loadQuestions = async () => {
-            const user = storage.getCurrentUser();
-            if (!user) return;
+            const user = await authClient.getCurrentUser();
+            if (!user) {
+                router.push('/');
+                return;
+            }
             
             setIsPro(user.isPro || false);
 
             if (!user.isPro) {
-                const allResults = await storage.getResults();
-                const today = new Date();
-                const hasAttemptToday = allResults.some(r =>
-                    r.userId === user.id && isSameLocalDay(new Date(r.date), today)
-                );
-                if (hasAttemptToday) {
-                    router.push('/dashboard?limit=1');
-                    return;
+                const resultsRes = await fetch('/api/results', { credentials: 'include' });
+                if (resultsRes.ok) {
+                    const resultsData = await resultsRes.json();
+                    const allResults = resultsData.results || [];
+                    const today = new Date();
+                    const hasAttemptToday = allResults.some((r: ExamResult) =>
+                        r.userId === user.id && isSameLocalDay(new Date(r.date), today)
+                    );
+                    if (hasAttemptToday) {
+                        router.push('/dashboard?limit=1');
+                        return;
+                    }
                 }
             }
             
-            const q = await storage.getQuestions(category);
+            // Cargar preguntas desde API
+            const questionsRes = await fetch(`/api/questions?category=${category}`, {
+                credentials: 'include'
+            });
+            if (!questionsRes.ok) {
+                console.error('Error cargando preguntas');
+                router.push('/dashboard');
+                return;
+            }
+            const questionsData = await questionsRes.json();
+            const q: Question[] = questionsData.questions || [];
             const count = user.isPro ? 40 : 15; // 40 for PRO, 15 for trial
 
             const recentIds = await getRecentQuestionIds(user.id, category, 3);
             const avoidSet = new Set(recentIds);
-            const filteredPool = q.filter(item => !avoidSet.has(item.id));
+            const filteredPool = q.filter((item: Question) => !avoidSet.has(item.id));
             const poolToUse = filteredPool.length >= count ? filteredPool : q;
 
             // 1. Shuffle all available questions
@@ -114,8 +134,11 @@ function ExamContent() {
     }, [category]);
 
     const finishExam = async () => {
-        const user = storage.getCurrentUser();
-        if (!user) return;
+        const user = await authClient.getCurrentUser();
+        if (!user) {
+            router.push('/');
+            return;
+        }
 
         let score = 0;
         const failedQuestions: ExamResult['failedQuestions'] = [];
@@ -143,7 +166,18 @@ function ExamContent() {
             failedQuestions
         };
 
-        await storage.saveResult(result);
+        // Guardar resultado en API
+        const res = await fetch('/api/results', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(result)
+        });
+        
+        if (!res.ok) {
+            console.error('Error guardando resultado');
+        }
+        
         setIsFinished(true);
         setTimeout(() => router.push(`/exam/results/${result.id}`), 2000);
     };
@@ -158,7 +192,7 @@ function ExamContent() {
 
     if (isFinished) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+            <div className="min-h-screen flex items-center justify-center bg-white p-6">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -167,8 +201,8 @@ function ExamContent() {
                     <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-600">
                         <CheckCircle2 size={40} />
                     </div>
-                    <h2 className="text-3xl font-bold text-slate-900 mb-2">¡Evaluación Finalizada!</h2>
-                    <p className="text-slate-500">Estamos procesando tus resultados...</p>
+                    <h2 className="text-3xl font-semibold text-gray-900 mb-2 tracking-tight">¡Evaluación Finalizada!</h2>
+                    <p className="text-gray-600">Estamos procesando tus resultados...</p>
                 </motion.div>
             </div>
         );
@@ -177,31 +211,31 @@ function ExamContent() {
     const currentQuestion = questions[currentIndex];
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
-                <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="min-h-screen bg-white">
+            <header className="bg-white/95 border-b border-gray-200 sticky top-0 z-20 backdrop-blur-2xl">
+                <div className="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white">
-                            <Shield size={20} />
+                        <div className="w-11 h-11 bg-blue-600 rounded-2xl flex items-center justify-center text-white">
+                            <Shield size={22} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase">Categoría {category} {!isPro && '(PRUEBA - 15 preguntas)'}</p>
-                            <h1 className="font-bold text-slate-900">Evaluación Sin Fronteras</h1>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Categoría {category} {!isPro && '(PRUEBA - 15 preguntas)'}</p>
+                            <h1 className="font-semibold text-gray-900">Evaluación Sin Fronteras</h1>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full font-mono font-bold text-slate-700">
-                        <Clock size={16} /> {formatTime(timeLeft)}
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 rounded-full font-mono font-semibold text-gray-900">
+                        <Clock size={18} /> {formatTime(timeLeft)}
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-4xl mx-auto p-6 mt-8">
-                <div className="mb-8">
-                    <div className="flex justify-between items-end mb-2">
-                        <span className="text-sm font-bold text-slate-400 uppercase">Pregunta {currentIndex + 1} de {questions.length}</span>
-                        <span className="text-sm font-bold text-blue-600">{Math.round(((currentIndex + 1) / questions.length) * 100)}% Completado</span>
+            <main className="max-w-4xl mx-auto p-6 mt-10">
+                <div className="mb-10">
+                    <div className="flex justify-between items-end mb-3">
+                        <span className="text-sm font-medium text-gray-600">Pregunta {currentIndex + 1} de {questions.length}</span>
+                        <span className="text-sm font-medium text-blue-600">{Math.round(((currentIndex + 1) / questions.length) * 100)}% Completado</span>
                     </div>
-                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                         <motion.div
                             className="h-full bg-blue-600"
                             initial={{ width: 0 }}
@@ -216,9 +250,9 @@ function ExamContent() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100"
+                        className="bg-white p-10 md:p-14 rounded-3xl shadow-xl border border-gray-200"
                     >
-                        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 leading-tight">
+                        <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-10 leading-tight tracking-tight">
                             {currentQuestion.text}
                         </h2>
 
@@ -227,13 +261,17 @@ function ExamContent() {
                                 <button
                                     key={idx}
                                     onClick={() => setAnswers({ ...answers, [currentQuestion.id]: idx })}
-                                    className={`w-full p-5 rounded-2xl text-left font-medium transition-all flex items-center gap-4 border-2 ${answers[currentQuestion.id] === idx
-                                        ? 'bg-blue-50 border-blue-600 text-blue-700'
-                                        : 'bg-slate-50 border-transparent hover:bg-slate-100 text-slate-600'
-                                        }`}
+                                    className={`w-full p-5 rounded-2xl text-left font-normal transition-all flex items-center gap-4 border-2 text-base ${
+                                        answers[currentQuestion.id] === idx
+                                            ? 'bg-blue-50 border-blue-600 text-blue-700'
+                                            : 'bg-gray-50/50 border-transparent hover:bg-gray-50 hover:border-gray-200 text-gray-700'
+                                    }`}
                                 >
-                                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${answers[currentQuestion.id] === idx ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 border border-slate-200'
-                                        }`}>
+                                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold ${
+                                        answers[currentQuestion.id] === idx
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white text-gray-500 border-2 border-gray-200'
+                                    }`}>
                                         {String.fromCharCode(65 + idx)}
                                     </span>
                                     {option}
@@ -243,11 +281,11 @@ function ExamContent() {
                     </motion.div>
                 </AnimatePresence>
 
-                <div className="mt-8 flex items-center justify-between">
+                <div className="mt-10 flex items-center justify-between">
                     <button
                         onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                         disabled={currentIndex === 0}
-                        className="flex items-center gap-2 px-6 py-3 font-semibold text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center gap-2 px-6 py-3 font-medium text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                         <ChevronLeft size={20} /> Anterior
                     </button>
@@ -255,14 +293,14 @@ function ExamContent() {
                     {currentIndex === questions.length - 1 ? (
                         <button
                             onClick={finishExam}
-                            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-200 transition-all"
+                            className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-lg shadow-blue-200 transition-all hover:scale-105"
                         >
                             Finalizar Evaluación
                         </button>
                     ) : (
                         <button
                             onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                            className="flex items-center gap-2 px-8 py-3 bg-slate-900 hover:bg-black text-white rounded-xl font-bold shadow-lg transition-all"
+                            className="flex items-center gap-2 px-8 py-3.5 bg-gray-900 hover:bg-black text-white rounded-xl font-medium shadow-lg transition-all hover:scale-105"
                         >
                             Siguiente <ChevronRight size={20} />
                         </button>

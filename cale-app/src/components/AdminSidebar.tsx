@@ -3,7 +3,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { Users, BookOpen, BarChart3, LogOut, CreditCard } from 'lucide-react';
-import { storage } from '@/lib/storage';
+import { authClient } from '@/lib/auth-client';
 import Image from 'next/image';
 
 const menuItems = [
@@ -17,30 +17,33 @@ export const AdminSidebar = () => {
     const router = useRouter();
     const pathname = usePathname();
 
-    const handleLogout = () => {
-        storage.setCurrentUser(null);
+    const handleLogout = async () => {
+        await authClient.logout();
         router.push('/');
     };
 
     return (
-        <div className="w-64 bg-slate-900 h-screen sticky top-0 flex flex-col p-6 text-white shrink-0">
+        <div className="w-64 bg-gray-900 h-screen sticky top-0 flex flex-col p-6 text-white shrink-0 border-r border-gray-800">
             <div className="flex items-center gap-3 mb-12">
-                <div className="relative w-10 h-10 bg-white rounded-xl overflow-hidden shrink-0">
-                    <Image src="/logo.jpg" alt="Logo" fill className="object-contain" />
+                <div className="relative w-11 h-11 bg-white rounded-2xl overflow-hidden shrink-0">
+                    <Image src="/logo.png" alt="Logo" fill className="object-contain p-1" />
                 </div>
                 <div>
-                    <h2 className="font-bold text-lg leading-none">Admin</h2>
-                    <p className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">Sin Fronteras</p>
+                    <h2 className="font-semibold text-lg leading-none">Admin</h2>
+                    <p className="text-xs text-blue-400 font-medium uppercase tracking-wide mt-0.5">Sin Fronteras</p>
                 </div>
             </div>
 
-            <nav className="flex-1 space-y-2">
+            <nav className="flex-1 space-y-1.5">
                 {menuItems.map((item) => (
                     <button
                         key={item.href}
                         onClick={() => router.push(item.href)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${pathname === item.href ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800'
-                            }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-normal ${
+                            pathname === item.href
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        }`}
                     >
                         {item.icon}
                         {item.label}
@@ -50,7 +53,7 @@ export const AdminSidebar = () => {
 
             <button
                 onClick={handleLogout}
-                className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 transition-colors font-medium"
+                className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-red-400 transition-colors font-normal rounded-2xl hover:bg-gray-800"
             >
                 <LogOut size={20} />
                 Cerrar Sesión

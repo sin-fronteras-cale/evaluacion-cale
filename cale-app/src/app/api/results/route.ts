@@ -1,32 +1,63 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
+import { parsePaginationParams } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-    try {
-        // Include user details if needed, but for now just raw results
-        const results = await prisma.result.findMany({
-            include: { user: { select: { name: true } } }
-        });
+export async function GET(req: NextRequest) {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const currentUser = authResult;
 
-        // Map to match frontend expected interface if needed, or update frontend types.
-        // Frontend expects: userId, userName. result.user.name gives userName.
+    try {
+        const { searchParams } = new URL(req.url);
+        const { limit, skip } = parsePaginationParams(searchParams);
+
+        // Admin can see all results, regular users only their own
+        const whereClause = currentUser.role === 'admin' 
+            ? {} 
+            : { userId: currentUser.id };
+
+        const [results, total] = await Promise.all([
+            prisma.result.findMany({
+                where: whereClause,
+                take: limit,
+                skip,
+                orderBy: { date: 'desc' },
+                include: { user: { select: { name: true } } }
+            }),
+            prisma.result.count({ where: whereClause })
+        ]);
+
         const mappedResults = results.map(r => ({
             ...r,
-            userName: r.user?.name || r.userName // Use relation or fallback
+            userName: r.user?.name || r.userName
         }));
 
-        return NextResponse.json(mappedResults);
+        return NextResponse.json({ results: mappedResults, total, limit, skip });
     } catch (e) {
-        console.error(e);
-        return NextResponse.json([], { status: 500 });
+        console.error('Results GET error:', e);
+        return NextResponse.json({ error: 'Error al cargar resultados' }, { status: 500 });
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const currentUser = authResult;
+
     try {
         const result = await req.json();
+
+        // Ensure user can only create results for themselves
+        if (result.userId !== currentUser.id && currentUser.role !== 'admin') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
+        if (!result.category || !result.score || !result.totalQuestions) {
+            return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+        }
 
         const savedResult = await prisma.result.create({
             data: {
@@ -42,8 +73,8 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ success: true, result: savedResult });
-    } catch (e) {
-        console.error(e);
-        return NextResponse.json({ error: 'Failed to save result' }, { status: 500 });
+    } catch (e: any) {
+        console.error('Results POST error:', e);
+        return NextResponse.json({ error: 'Error al guardar resultado' }, { status: 500 });
     }
 }

@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +8,7 @@ const DEFAULTS: Record<string, number> = {
     pro_price_cop: 20000
 };
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const key = searchParams.get('key');
@@ -29,7 +30,10 @@ export async function GET(req: Request) {
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     try {
         const body = await req.json();
         const key = typeof body?.key === 'string' ? body.key.trim() : '';

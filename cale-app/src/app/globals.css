@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7fb;
-  --foreground: #0b1220;
-  --primary: #1d4ed8;
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --primary: #0071e3;
   --primary-foreground: #ffffff;
-  --secondary: #475569;
-  --accent: #fbbf24;
-  --card: rgba(255, 255, 255, 0.9);
-  --card-foreground: #0b1220;
-  --border: rgba(148, 163, 184, 0.25);
-  --ring: rgba(29, 78, 216, 0.45);
-  --radius: 0.9rem;
-  --glass: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(148, 163, 184, 0.2);
+  --secondary: #86868b;
+  --accent: #0071e3;
+  --card: rgba(255, 255, 255, 0.95);
+  --card-foreground: #1d1d1f;
+  --border: rgba(0, 0, 0, 0.08);
+  --ring: rgba(0, 113, 227, 0.3);
+  --radius: 1.125rem;
+  --glass: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(0, 0, 0, 0.06);
 }
 
 @theme inline {
@@ -27,41 +27,52 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, system-ui, sans-serif;
   min-height: 100vh;
-  background-image:
-    radial-gradient(at 15% 10%, rgba(29, 78, 216, 0.12) 0px, transparent 45%),
-    radial-gradient(at 85% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 40%),
-    radial-gradient(at 90% 90%, rgba(15, 23, 42, 0.08) 0px, transparent 45%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 .glass {
   background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
 }
 
 .apple-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) + 0.4rem);
-  box-shadow: 0 30px 80px -60px rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .card-gradient {
-  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  background: linear-gradient(135deg, #0071e3 0%, #005bb5 100%);
   color: white;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Apple-style button focus */
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }

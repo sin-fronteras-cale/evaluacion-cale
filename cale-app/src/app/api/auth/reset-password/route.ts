@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { validatePassword } from '@/lib/validation';
 
 // Rate limit: 10 requests per 15 minutes per IP
 const RATE_LIMIT = {
@@ -10,7 +11,7 @@ const RATE_LIMIT = {
   maxRequests: 10
 };
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     // Rate limiting
     const clientIp = getClientIp(req);
@@ -27,8 +28,13 @@ export async function POST(req: Request) {
     const token = typeof body?.token === 'string' ? body.token.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
 
-    if (!token || !password || password.length < 6) {
-      return NextResponse.json({ error: 'Datos invalidos' }, { status: 400 });
+    if (!token || !password) {
+      return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return NextResponse.json({ error: passwordValidation.message }, { status: 400 });
     }
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');

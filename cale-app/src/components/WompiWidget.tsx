@@ -7,7 +7,7 @@ interface WompiWidgetProps {
     reference: string;
     publicKey: string;
     redirectUrl?: string;
-    onSuccess?: (result: any) => void;
+    onSuccess?: (result: unknown) => void;
 }
 
 export const WompiWidget = ({ amount, reference, publicKey, redirectUrl }: WompiWidgetProps) => {
@@ -22,7 +22,9 @@ export const WompiWidget = ({ amount, reference, publicKey, redirectUrl }: Wompi
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!isValidKey) return;
+        // Prevent execution if parameters are missing or invalid
+        if (!isValidKey || !normalizedReference || !amountInCents || amountInCents <= 0) return;
+        
         const key = [amountInCents, normalizedReference, normalizedKey, redirectUrl ?? '', reloadNonce].join('|');
         if (lastKeyRef.current === key) return;
         lastKeyRef.current = key;
@@ -108,7 +110,9 @@ export const WompiWidget = ({ amount, reference, publicKey, redirectUrl }: Wompi
                     {error}
                 </div>
             )}
-            <div ref={widgetRef} className="w-full" />
+            <form className="w-full">
+                <div ref={widgetRef} className="w-full" />
+            </form>
             {/* The widget will be injected here */}
             <style jsx global>{`
                 .wompi-container button.wompi-button {

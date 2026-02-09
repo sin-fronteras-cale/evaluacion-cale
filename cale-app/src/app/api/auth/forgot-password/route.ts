@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { validateEmail } from '@/lib/validation';
 
 const TOKEN_TTL_MS = 1000 * 60 * 60;
 
@@ -20,7 +21,7 @@ const getAppUrl = (req: Request) => {
   return 'http://localhost:3000';
 };
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     // Rate limiting
     const clientIp = getClientIp(req);
@@ -38,6 +39,10 @@ export async function POST(req: Request) {
 
     if (!email) {
       return NextResponse.json({ error: 'Email requerido' }, { status: 400 });
+    }
+
+    if (!validateEmail(email)) {
+      return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({

@@ -1,8 +1,7 @@
 
-import { Question, User, ExamResult, Category } from './data';
+import { Question, User, ExamResult, Category, Payment } from './data';
 
 const STORAGE_KEYS = {
-    CURRENT_USER: 'cale_current_user',
     RESULTS: 'cale_results'
 };
 
@@ -10,29 +9,46 @@ export const storage = {
     // Initialize (No longer needed to seed here, handled by data files)
     init: () => { },
 
-    // Auth (Session management remains in localStorage for simplicity)
-    getCurrentUser: (): User | null => {
-        if (typeof window === 'undefined') return null;
-        const user = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        return user ? JSON.parse(user) : null;
+    // Auth - Now managed via HTTP-only cookies and /api/auth/me endpoint
+    getCurrentUser: async (): Promise<User | null> => {
+        try {
+            const res = await fetch('/api/auth/me', {
+                credentials: 'include' // Important for sending cookies
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.user || null;
+        } catch (e) {
+            console.error('Error fetching current user', e);
+            return null;
+        }
     },
 
-    setCurrentUser: (user: User | null) => {
-        if (typeof window === 'undefined') return;
-        if (user) localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-        else localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    logout: async () => {
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+        } catch (e) {
+            console.error('Error logging out', e);
+        }
     },
 
     // Users
     getUsers: async (): Promise<User[]> => {
-        const res = await fetch('/api/users');
+        const res = await fetch('/api/users', {
+            credentials: 'include'
+        });
         if (!res.ok) return [];
-        return res.json();
+        const data = await res.json();
+        return data.users || data || [];
     },
     saveUser: async (user: User) => {
         await fetch('/api/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(user)
         });
     },
@@ -40,13 +56,16 @@ export const storage = {
         await fetch('/api/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ action: 'delete', id })
         });
     },
 
     // Questions
     getQuestions: async (category?: Category): Promise<Question[]> => {
-        const res = await fetch('/api/questions');
+        const res = await fetch('/api/questions', {
+            credentials: 'include'
+        });
         if (!res.ok) return [];
         const questions: Question[] = await res.json();
         return category ? questions.filter(q => q.category === category) : questions;
@@ -55,6 +74,7 @@ export const storage = {
         await fetch('/api/questions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(question)
         });
     },
@@ -62,6 +82,7 @@ export const storage = {
         await fetch('/api/questions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ action: 'delete', id })
         });
     },
@@ -69,8 +90,13 @@ export const storage = {
     // Results
     getResults: async (): Promise<ExamResult[]> => {
         try {
-            const res = await fetch('/api/results');
-            if (res.ok) return res.json();
+            const res = await fetch('/api/results', {
+                credentials: 'include'
+            });
+            if (res.ok) {
+                const data = await res.json();
+                return data.results || data || [];
+            }
         } catch (e) {
             console.error('Failed to load results from API', e);
         }
@@ -84,6 +110,7 @@ export const storage = {
             const res = await fetch('/api/results', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(result)
             });
             if (res.ok) return;
@@ -118,5 +145,20 @@ export const storage = {
         return Object.values(failedCounts)
             .sort((a, b) => b.count - a.count)
             .slice(0, limit);
+    },
+
+    // Payments
+    getPayments: async (userId?: string): Promise<Payment[]> => {
+        try {
+            const url = userId ? `/api/payments?userId=${userId}` : '/api/payments';
+            const res = await fetch(url, {
+                credentials: 'include'
+            });
+            if (res.ok) return res.json();
+            return [];
+        } catch (e) {
+            console.error('Error fetching payments', e);
+            return [];
+        }
     }
 };

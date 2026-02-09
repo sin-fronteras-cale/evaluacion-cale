@@ -1,49 +1,63 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { requireAdmin, requireAuth } from '@/lib/auth';
+import { validateCategory, parsePaginationParams } from '@/lib/validation';
 import { Question } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
-const loadSeedQuestions = async (): Promise<Question[]> => {
-    try {
-        const filePath = path.join(process.cwd(), 'data', 'questions.json');
-        const raw = await fs.readFile(filePath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-        console.error('Failed to load seed questions', e);
-        return [];
-    }
-};
+export async function GET(req: NextRequest) {
+    const authResult = await requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
 
-export async function GET() {
     try {
-        const questions = await prisma.question.findMany();
-        if (questions.length === 0) {
-            const fallbackQuestions = await loadSeedQuestions();
-            if (fallbackQuestions.length > 0) return NextResponse.json(fallbackQuestions);
-        }
+        const { searchParams } = new URL(req.url);
+        const category = searchParams.get('category');
+        
+        const whereClause = category && validateCategory(category) 
+            ? { category } 
+            : {};
 
-        return NextResponse.json(questions);
+        const questions = await prisma.question.findMany({
+            where: whereClause,
+            orderBy: { category: 'asc' }
+        });
+
+        return NextResponse.json({ questions });
     } catch (e) {
-        console.error(e);
-        const fallbackQuestions = await loadSeedQuestions();
-        if (fallbackQuestions.length > 0) return NextResponse.json(fallbackQuestions);
-        return NextResponse.json([], { status: 500 });
+        console.error('Questions GET error:', e);
+        return NextResponse.json({ error: 'Error al cargar preguntas' }, { status: 500 });
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+
     try {
         const body = await req.json();
 
         if (body.action === 'delete') {
+            if (!body.id) {
+                return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+            }
             await prisma.question.delete({
                 where: { id: body.id }
             });
             return NextResponse.json({ success: true });
+        }
+
+        // Validation
+        if (!body.category || !body.text || !body.options || !Array.isArray(body.options)) {
+            return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+        }
+
+        if (!validateCategory(body.category)) {
+            return NextResponse.json({ error: 'Categoría inválida' }, { status: 400 });
+        }
+
+        if (typeof body.correctAnswer !== 'number' || body.correctAnswer < 0 || body.correctAnswer >= body.options.length) {
+            return NextResponse.json({ error: 'Respuesta correcta inválida' }, { status: 400 });
         }
 
         const question = await prisma.question.upsert({
@@ -64,8 +78,8 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ success: true, question });
-    } catch (e) {
-        console.error(e);
-        return NextResponse.json({ error: 'Failed to update question' }, { status: 500 });
+    } catch (e: any) {
+        console.error('Questions POST error:', e);
+        return NextResponse.json({ error: 'Error al actualizar pregunta' }, { status: 500 });
     }
 }

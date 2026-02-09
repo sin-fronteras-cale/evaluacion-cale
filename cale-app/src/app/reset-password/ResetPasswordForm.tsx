@@ -44,6 +44,7 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ token, password })
       });
 
@@ -57,23 +58,23 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       setStatus('success');
       setMessage('Contrasena actualizada. Ya puedes iniciar sesion.');
       setTimeout(() => router.push('/'), 1500);
-    } catch (error) {
+    } catch {
       setStatus('error');
       setMessage('No se pudo restablecer');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Restablecer contrasena</h1>
-        <p className="text-sm text-slate-500 mb-6">
-          Ingresa tu nueva contrasena para recuperar tu cuenta.
+    <div className="min-h-screen bg-white flex items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md bg-white border border-gray-200 rounded-3xl shadow-xl p-10">
+        <h1 className="text-3xl font-semibold text-gray-900 mb-3 tracking-tight">Restablecer contraseña</h1>
+        <p className="text-base text-gray-600 mb-8 leading-relaxed">
+          Ingresa tu nueva contraseña para recuperar tu cuenta.
         </p>
 
         {message && (
           <div
-            className={`mb-4 text-sm rounded-lg px-4 py-3 ${
+            className={`mb-6 text-sm rounded-2xl px-5 py-4 ${
               status === 'error'
                 ? 'bg-red-50 text-red-600 border border-red-100'
                 : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
@@ -83,40 +84,40 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nueva contrasena</label>
+            <label className="block text-sm font-normal text-gray-900 mb-2">Nueva contraseña</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-slate-900 outline-none"
+              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 outline-none transition-all text-base"
               placeholder="••••••••"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Confirmar contrasena</label>
+            <label className="block text-sm font-normal text-gray-900 mb-2">Confirmar contraseña</label>
             <input
               type="password"
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-slate-900 outline-none"
+              className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 outline-none transition-all text-base"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full py-3 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition disabled:opacity-70"
+            className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-normal hover:bg-blue-700 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            {status === 'loading' ? 'Actualizando...' : 'Actualizar contrasena'}
+            {status === 'loading' ? 'Actualizando...' : 'Actualizar contraseña'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
-          <Link href="/" className="text-slate-700 hover:text-slate-900 underline">
+        <div className="mt-8 text-center text-sm text-gray-600">
+          <Link href="/" className="text-blue-600 hover:text-blue-700 font-normal transition-colors">
             Volver al inicio
           </Link>
         </div>

@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { storage } from '@/lib/storage';
 
 function PaymentConfirmContent() {
     const searchParams = useSearchParams();
@@ -19,17 +18,14 @@ function PaymentConfirmContent() {
             }
 
             try {
-                const res = await fetch(`/api/payments/verify?id=${transactionId}`);
+                const res = await fetch(`/api/payments/verify?id=${transactionId}`, {
+                    credentials: 'include'
+                });
                 const data = await res.json();
 
                 if (data.success) {
                     setStatus('success');
-                    // Update local storage to reflect the change immediately
-                    const currentUser = storage.getCurrentUser();
-                    if (currentUser) {
-                        currentUser.isPro = true;
-                        storage.setCurrentUser(currentUser);
-                    }
+                    // Cookie already updated by server
                     // Redirect to dashboard after 3 seconds
                     setTimeout(() => router.push('/dashboard'), 3000);
                 } else {

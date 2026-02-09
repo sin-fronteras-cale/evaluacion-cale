@@ -40,6 +40,17 @@ export interface ExamResult {
   }[];
 }
 
+export interface Payment {
+  id: string;
+  transactionId: string;
+  reference: string;
+  status: string; // 'APPROVED' | 'DECLINED' | 'ERROR'
+  amountInCents: number;
+  currency: string;
+  createdAt: string;
+  paymentMethodType?: string;
+}
+
 const A2_REAL: Omit<Question, 'id' | 'category'>[] = [
   { text: "¿Cuál es el cilindraje máximo para la categoría A1?", options: ["100cc", "125cc", "150cc", "200cc"], correctAnswer: 1 },
   { text: "¿Qué indica la categoría A2 de licencia?", options: ["Solo motos de 125cc", "Motos de cualquier cilindraje", "Solo motos eléctricas", "Solo mototaxis"], correctAnswer: 1 },
