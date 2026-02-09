@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Evaluación CALE",
+  title: "Evaluacion Cale",
   description: "Sistema de evaluación para examen de conducción CALE",
 };
 
