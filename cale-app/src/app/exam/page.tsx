@@ -19,6 +19,7 @@ function ExamContent() {
     const [timeLeft, setTimeLeft] = useState(3000); // Default to 50 mins
     const [isFinished, setIsFinished] = useState(false);
     const [isPro, setIsPro] = useState(false);
+    const [evalName, setEvalName] = useState(`Categoría ${category}`);
 
     const isSameLocalDay = (a: Date, b: Date) => {
         return a.getFullYear() === b.getFullYear()
@@ -54,55 +55,75 @@ function ExamContent() {
                 router.push('/');
                 return;
             }
-            
+
             setIsPro(user.isPro || false);
 
-            if (!user.isPro) {
-                const resultsRes = await fetch('/api/results', { credentials: 'include' });
-                if (resultsRes.ok) {
-                    const resultsData = await resultsRes.json();
-                    const allResults = resultsData.results || [];
-                    const today = new Date();
-                    const hasAttemptToday = allResults.some((r: ExamResult) =>
-                        r.userId === user.id && isSameLocalDay(new Date(r.date), today)
-                    );
-                    if (hasAttemptToday) {
-                        router.push('/dashboard?limit=1');
-                        return;
-                    }
+            // Parallelize all initial network requests to optimize load times
+            const [evalRes, questionsRes, recentIdsList, resultsDataLimit] = await Promise.all([
+                fetch(`/api/evaluations/${category}`, { credentials: 'include' }).catch(() => null),
+                fetch(`/api/questions?category=${category}`, { credentials: 'include' }).catch(() => null),
+                getRecentQuestionIds(user.id, category, 3).catch(() => []),
+                !user.isPro ? fetch('/api/results', { credentials: 'include' }).then(res => res.ok ? res.json() : null).catch(() => null) : Promise.resolve(null)
+            ]);
+
+            let isCustomEval = false;
+            let customCount = 0;
+            let customTime = 0;
+
+            if (evalRes?.ok) {
+                const evalData = await evalRes.json();
+                if (evalData.evaluation) {
+                    isCustomEval = true;
+                    customCount = evalData.evaluation.questionCount;
+                    customTime = evalData.evaluation.durationMinutes * 60;
+                    setEvalName(evalData.evaluation.name);
                 }
             }
-            
-            // Cargar preguntas desde API
-            const questionsRes = await fetch(`/api/questions?category=${category}`, {
-                credentials: 'include'
-            });
-            if (!questionsRes.ok) {
+
+            if (!user.isPro && resultsDataLimit && !isCustomEval) {
+                const allResults = resultsDataLimit.results || [];
+                // Find all evaluations mapped to check if it was a custom test taken today
+                const today = new Date();
+                const hasAttemptToday = allResults.some((r: ExamResult) =>
+                    r.userId === user.id && isSameLocalDay(new Date(r.date), today) &&
+                    !['A2', 'B1', 'C1'].includes(r.category) === false // Only count A2,B1,C1 limits
+                );
+
+                if (hasAttemptToday && ['A2', 'B1', 'C1'].includes(category)) {
+                    router.push('/dashboard?limit=1');
+                    return;
+                }
+            }
+
+            if (!questionsRes?.ok) {
                 console.error('Error cargando preguntas');
                 router.push('/dashboard');
                 return;
             }
             const questionsData = await questionsRes.json();
             const q: Question[] = questionsData.questions || [];
-            const count = user.isPro ? 40 : 15; // 40 for PRO, 15 for trial
 
-            const recentIds = await getRecentQuestionIds(user.id, category, 3);
-            const avoidSet = new Set(recentIds);
+            const count = isCustomEval ? customCount : (user.isPro ? 40 : 15);
+            const avoidSet = new Set(recentIdsList);
             const filteredPool = q.filter((item: Question) => !avoidSet.has(item.id));
             const poolToUse = filteredPool.length >= count ? filteredPool : q;
 
-            // 1. Shuffle all available questions
-            const shuffledPool = shuffleArray(poolToUse);
+            // 1. Shuffle all available questions (skip for custom evals to keep order)
+            const shuffledPool = isCustomEval ? poolToUse : shuffleArray(poolToUse);
 
-            // 2. Select amount based on PRO status
+            // 2. Select amount based on configuration
             const selected = shuffledPool.slice(0, count);
 
-            // 3. Shuffle options for each selected question
             const finalized = selected.map(question => {
                 const originalOptions = [...question.options];
-                const correctAnswerText = originalOptions[question.correctAnswer];
-                const shuffledOptions = shuffleArray(originalOptions);
-                const newCorrectAnswer = shuffledOptions.indexOf(correctAnswerText);
+                let shuffledOptions = originalOptions;
+                let newCorrectAnswer = question.correctAnswer;
+
+                if (!isCustomEval) {
+                    const correctAnswerText = originalOptions[question.correctAnswer];
+                    shuffledOptions = shuffleArray(originalOptions);
+                    newCorrectAnswer = shuffledOptions.indexOf(correctAnswerText);
+                }
 
                 return {
                     ...question,
@@ -113,9 +134,8 @@ function ExamContent() {
 
             setQuestions(finalized);
 
-            // 4. Set timer based on PRO status
-            // 50 minutes (3000 seconds) for PRO, 15 minutes (900 seconds) for trial
-            setTimeLeft(user.isPro ? 3000 : 900);
+            // 4. Set timer
+            setTimeLeft(isCustomEval ? customTime : (user.isPro ? 3000 : 900));
         };
         loadQuestions();
 
@@ -173,11 +193,11 @@ function ExamContent() {
             credentials: 'include',
             body: JSON.stringify(result)
         });
-        
+
         if (!res.ok) {
             console.error('Error guardando resultado');
         }
-        
+
         setIsFinished(true);
         setTimeout(() => router.push(`/exam/results/${result.id}`), 2000);
     };
@@ -219,7 +239,7 @@ function ExamContent() {
                             <Shield size={22} />
                         </div>
                         <div>
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Categoría {category} {!isPro && '(PRUEBA - 15 preguntas)'}</p>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{evalName} {!isPro && !evalName.includes('Categoría') ? '' : (!isPro && '(PRUEBA - 15 preguntas)')}</p>
                             <h1 className="font-semibold text-gray-900">Evaluación Sin Fronteras</h1>
                         </div>
                     </div>
@@ -261,17 +281,15 @@ function ExamContent() {
                                 <button
                                     key={idx}
                                     onClick={() => setAnswers({ ...answers, [currentQuestion.id]: idx })}
-                                    className={`w-full p-5 rounded-2xl text-left font-normal transition-all flex items-center gap-4 border-2 text-base ${
-                                        answers[currentQuestion.id] === idx
-                                            ? 'bg-blue-50 border-blue-600 text-blue-700'
-                                            : 'bg-gray-50/50 border-transparent hover:bg-gray-50 hover:border-gray-200 text-gray-700'
-                                    }`}
+                                    className={`w-full p-5 rounded-2xl text-left font-normal transition-all flex items-center gap-4 border-2 text-base ${answers[currentQuestion.id] === idx
+                                        ? 'bg-blue-50 border-blue-600 text-blue-700'
+                                        : 'bg-gray-50/50 border-transparent hover:bg-gray-50 hover:border-gray-200 text-gray-700'
+                                        }`}
                                 >
-                                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold ${
-                                        answers[currentQuestion.id] === idx
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white text-gray-500 border-2 border-gray-200'
-                                    }`}>
+                                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold ${answers[currentQuestion.id] === idx
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-white text-gray-500 border-2 border-gray-200'
+                                        }`}>
                                         {String.fromCharCode(65 + idx)}
                                     </span>
                                     {option}

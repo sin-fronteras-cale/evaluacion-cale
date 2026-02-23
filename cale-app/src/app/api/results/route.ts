@@ -14,10 +14,15 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const { limit, skip } = parsePaginationParams(searchParams);
 
-        // Admin can see all results, regular users only their own
-        const whereClause = currentUser.role === 'admin' 
-            ? {} 
-            : { userId: currentUser.id };
+        // Admin can see all, admin_supertaxis sees company results, regular users only their own
+        let whereClause: any = {};
+        if (currentUser.role === 'admin') {
+            whereClause = {};
+        } else if (currentUser.role === 'admin_supertaxis') {
+            whereClause = { user: { companyTag: currentUser.companyTag } };
+        } else {
+            whereClause = { userId: currentUser.id };
+        }
 
         const [results, total] = await Promise.all([
             prisma.result.findMany({
@@ -50,8 +55,9 @@ export async function POST(req: NextRequest) {
     try {
         const result = await req.json();
 
-        // Ensure user can only create results for themselves
-        if (result.userId !== currentUser.id && currentUser.role !== 'admin') {
+        // Ensure user can only create results for themselves, or is an admin
+        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'admin_supertaxis';
+        if (result.userId !== currentUser.id && !isAdmin) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
 

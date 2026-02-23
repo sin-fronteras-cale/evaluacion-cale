@@ -24,10 +24,11 @@ export default function UserManagement() {
     const router = useRouter();
     const [users, setUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user' | 'pro'>('all');
+    const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user' | 'pro' | 'supertaxis' | 'admin_supertaxis'>('all');
     const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid'>('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState<Partial<User> | null>(null);
+    const [adminRole, setAdminRole] = useState<string>('');
     const [isInfoOpen, setIsInfoOpen] = useState(false);
     const [infoUser, setInfoUser] = useState<User | null>(null);
     const [infoPayments, setInfoPayments] = useState<PaymentInfo[]>([]);
@@ -45,12 +46,14 @@ export default function UserManagement() {
                 router.push('/');
                 return;
             }
-            
-            if (user.role !== 'admin') {
-                console.error('User is not admin, redirecting to dashboard');
+
+            if (user.role !== 'admin' && user.role !== 'admin_supertaxis') {
+                console.error('User is not authorized, redirecting to dashboard');
                 router.push('/dashboard');
                 return;
             }
+
+            setAdminRole(user.role?.toLowerCase() || 'user');
 
             // Cargar datos
             loadUsers();
@@ -80,7 +83,7 @@ export default function UserManagement() {
                 setIsLoading(false);
             }
         };
-        
+
         checkAuthAndLoadData();
     }, [router]);
 
@@ -147,21 +150,22 @@ export default function UserManagement() {
                     idNumber: currentUser.idNumber,
                     city: currentUser.city,
                     department: currentUser.department,
-                    isPro: currentUser.isPro || false
+                    isPro: currentUser.isPro || false,
+                    companyTag: currentUser.companyTag
                 };
-                
+
                 const res = await fetch('/api/users', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
                     body: JSON.stringify(userData)
                 });
-                
+
                 if (!res.ok) {
                     alert('Error al guardar el usuario');
                     return;
                 }
-                
+
                 // Reload users
                 const usersRes = await fetch('/api/users', {
                     credentials: 'include'
@@ -170,7 +174,7 @@ export default function UserManagement() {
                     const data = await usersRes.json();
                     setUsers(data.users || []);
                 }
-                
+
                 setIsModalOpen(false);
             } catch (e) {
                 console.error('Error saving user:', e);
@@ -188,12 +192,12 @@ export default function UserManagement() {
                     credentials: 'include',
                     body: JSON.stringify({ action: 'delete', id })
                 });
-                
+
                 if (!res.ok) {
                     alert('Error al eliminar el usuario');
                     return;
                 }
-                
+
                 // Reload users
                 const usersRes = await fetch('/api/users', {
                     credentials: 'include'
@@ -283,8 +287,10 @@ export default function UserManagement() {
                         <div className="flex items-center gap-3 flex-wrap">
                             {[
                                 { key: 'all', label: 'Todos' },
-                                { key: 'admin', label: 'Administradores' },
-                                { key: 'user', label: 'Usuarios' },
+                                { key: 'admin', label: 'Administrador Central' },
+                                { key: 'admin_supertaxis', label: 'Administrador Supertaxis' },
+                                { key: 'supertaxis', label: 'Usuario Supertaxis' },
+                                { key: 'user', label: 'Estudiantes' },
                                 { key: 'pro', label: 'Pro' }
                             ].map(option => (
                                 <button
@@ -317,7 +323,7 @@ export default function UserManagement() {
                             <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700 max-w-md mx-auto">
                                 <p className="font-semibold mb-2">Error al cargar usuarios</p>
                                 <p className="text-sm">{error}</p>
-                                <button 
+                                <button
                                     onClick={() => window.location.reload()}
                                     className="mt-4 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
                                 >
@@ -334,81 +340,87 @@ export default function UserManagement() {
                     )}
 
                     {!error && !isLoading && (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50/80 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Usuario</th>
-                                    <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Identificación</th>
-                                    <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Ubicación</th>
-                                    <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Estado/Rol</th>
-                                    <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {filteredUsers.map((user) => (
-                                    <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">
-                                                    <UserIcon size={20} />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-900">{user.name}</p>
-                                                    <p className="text-sm text-gray-600 flex items-center gap-1"><Mail size={12} /> {user.email}</p>
-                                                    {user.phone && (
-                                                        <p className="text-xs text-gray-500">{user.phone}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <p className="text-sm font-medium text-gray-900">{user.idType || 'N/A'}</p>
-                                            <p className="text-xs text-gray-600">{user.idNumber || 'Sin número'}</p>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <p className="text-sm font-medium text-gray-900">{user.city || 'Sin ciudad'}</p>
-                                            <p className="text-xs text-gray-600">{user.department || 'Sin departamento'}</p>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide ${user.role === 'admin' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'}`}>
-                                                {user.role}
-                                            </span>
-                                            {user.isPro && (
-                                                <span className="ml-2 px-2.5 py-1 bg-amber-50 text-amber-600 rounded-lg text-xs font-semibold uppercase tracking-wide">
-                                                    Pro
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-8 py-5 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => openInfo(user)}
-                                                    className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
-                                                    title="Ver información"
-                                                >
-                                                    <Info size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => { setCurrentUser(user); setIsModalOpen(true); }}
-                                                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                                >
-                                                    <Edit2 size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(user.id)}
-                                                    disabled={user.role === 'admin'}
-                                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-30"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50/80 border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Usuario</th>
+                                        <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Identificación</th>
+                                        <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Ubicación</th>
+                                        <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide">Estado/Rol</th>
+                                        <th className="px-8 py-4 text-xs font-medium text-gray-600 uppercase tracking-wide text-right">Acciones</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredUsers.map((user) => (
+                                        <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">
+                                                        <UserIcon size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-gray-900">{user.name}</p>
+                                                        <p className="text-sm text-gray-600 flex items-center gap-1"><Mail size={12} /> {user.email}</p>
+                                                        {user.phone && (
+                                                            <p className="text-xs text-gray-500">{user.phone}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <p className="text-sm font-medium text-gray-900">{user.idType || 'N/A'}</p>
+                                                <p className="text-xs text-gray-600">{user.idNumber || 'Sin número'}</p>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <p className="text-sm font-medium text-gray-900">{user.city || 'Sin ciudad'}</p>
+                                                <p className="text-xs text-gray-600">{user.department || 'Sin departamento'}</p>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wide ${user.role === 'admin' ? 'bg-indigo-50 text-indigo-600' :
+                                                    user.role === 'admin_supertaxis' ? 'bg-purple-50 text-purple-600' :
+                                                        user.role === 'supertaxis' ? 'bg-amber-50 text-amber-600' :
+                                                            'bg-blue-50 text-blue-600'
+                                                    }`}>
+                                                    {user.role === 'admin' ? 'Admin Central' :
+                                                        user.role === 'admin_supertaxis' ? 'Administrador Supertaxis' :
+                                                            user.role === 'supertaxis' ? 'Supertaxis' : 'Estudiante'}
+                                                </span>
+                                                {user.isPro && (
+                                                    <span className="ml-2 px-2.5 py-1 bg-amber-50 text-amber-600 rounded-lg text-xs font-semibold uppercase tracking-wide">
+                                                        Pro
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => openInfo(user)}
+                                                        className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                                                        title="Ver información"
+                                                    >
+                                                        <Info size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setCurrentUser(user); setIsModalOpen(true); }}
+                                                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                                    >
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(user.id)}
+                                                        disabled={user.role === 'admin'}
+                                                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-30"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             </main>
@@ -495,9 +507,24 @@ export default function UserManagement() {
                             onChange={e => setCurrentUser({ ...currentUser, role: e.target.value as any })}
                         >
                             <option value="user">Usuario Estudiante</option>
-                            <option value="admin">Administrador</option>
+                            <option value="supertaxis">Usuario Supertaxis</option>
+                            <option value="admin">Administrador Central</option>
+                            <option value="admin_supertaxis">Administrador Supertaxis</option>
                         </select>
                     </div>
+
+                    {adminRole === 'admin' && (
+                        <div>
+                            <label className="block text-sm font-normal text-gray-900 mb-2">Etiqueta de Empresa (Opcional)</label>
+                            <input
+                                type="text"
+                                className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 outline-none transition-all text-base"
+                                value={currentUser?.companyTag || ''}
+                                onChange={e => setCurrentUser({ ...currentUser, companyTag: e.target.value })}
+                                placeholder="ej: supertaxis"
+                            />
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-normal text-gray-900 mb-2">Contraseña</label>
                         <input

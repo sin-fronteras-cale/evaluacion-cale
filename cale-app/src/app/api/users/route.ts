@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin, sanitizeUser } from '@/lib/auth';
+import { requireAnyAdmin, sanitizeUser } from '@/lib/auth';
 import { validateEmail, validateRole, parsePaginationParams } from '@/lib/validation';
 import { User } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-    const authResult = await requireAdmin(req);
+    const authResult = await requireAnyAdmin(req);
     if (authResult instanceof NextResponse) return authResult;
+    const currentUser = authResult;
 
     try {
         const { searchParams } = new URL(req.url);
@@ -30,8 +31,15 @@ export async function GET(req: NextRequest) {
             }
         });
 
+        // Filter by companyTag if admin_supertaxis
+        const where: any = {};
+        if (currentUser.role === 'admin_supertaxis') {
+            where.companyTag = currentUser.companyTag;
+        }
+
         const [users, total] = await Promise.all([
             prisma.user.findMany({
+                where,
                 take: limit,
                 skip,
                 orderBy: { name: 'asc' },
@@ -47,10 +55,11 @@ export async function GET(req: NextRequest) {
                     department: true,
                     isPro: true,
                     proExpiresAt: true,
-                    policyAcceptedAt: true
+                    policyAcceptedAt: true,
+                    companyTag: true
                 }
             }),
-            prisma.user.count()
+            prisma.user.count({ where })
         ]);
 
         return NextResponse.json({ users, total, limit, skip });
@@ -61,8 +70,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    const authResult = await requireAdmin(req);
+    const authResult = await requireAnyAdmin(req);
     if (authResult instanceof NextResponse) return authResult;
+    const currentUser = authResult;
 
     try {
         const body = await req.json();
@@ -114,7 +124,8 @@ export async function POST(req: NextRequest) {
                 city: body.city,
                 department: body.department,
                 policyAcceptedAt: body.policyAcceptedAt ? new Date(body.policyAcceptedAt) : undefined,
-                isPro: body.isPro
+                isPro: body.isPro,
+                companyTag: currentUser.role === 'admin_supertaxis' ? currentUser.companyTag : body.companyTag
             },
             create: {
                 id: body.id,
@@ -128,7 +139,8 @@ export async function POST(req: NextRequest) {
                 city: body.city,
                 department: body.department,
                 policyAcceptedAt: body.policyAcceptedAt ? new Date(body.policyAcceptedAt) : undefined,
-                isPro: body.isPro
+                isPro: body.isPro,
+                companyTag: currentUser.role === 'admin_supertaxis' ? currentUser.companyTag : body.companyTag
             }
         });
 

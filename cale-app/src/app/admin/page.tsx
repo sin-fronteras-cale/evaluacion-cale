@@ -34,6 +34,12 @@ export default function AdminDashboard() {
         passRate: 0,
         topFailed: [] as { id: string; text: string; count: number }[]
     });
+    const [evaluations, setEvaluations] = useState<any[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+    const [allResults, setAllResults] = useState<any[]>([]);
+    const [questions, setQuestions] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [userRole, setUserRole] = useState<string>('');
 
     useEffect(() => {
         const checkAuthAndLoadStats = async () => {
@@ -44,12 +50,14 @@ export default function AdminDashboard() {
                 router.push('/');
                 return;
             }
-            
-            if (user.role !== 'admin') {
-                console.error('User is not admin, redirecting to dashboard');
+
+            if (user.role !== 'admin' && user.role !== 'admin_supertaxis') {
+                console.error('User is not authorized, redirecting to dashboard');
                 router.push('/dashboard');
                 return;
             }
+
+            setUserRole(user.role);
 
             // Cargar estadísticas
             loadStats();
@@ -57,53 +65,99 @@ export default function AdminDashboard() {
 
         const loadStats = async () => {
             try {
-                // Cargar usuarios desde API
-                const usersRes = await fetch('/api/users', { credentials: 'include' });
+                setIsLoading(true);
+                // Cargar todo en paralelo
+                const [usersRes, resultsRes, questionsRes, evalsRes] = await Promise.all([
+                    fetch('/api/users', { credentials: 'include' }),
+                    fetch('/api/results', { credentials: 'include' }),
+                    fetch('/api/questions', { credentials: 'include' }),
+                    fetch('/api/evaluations', { credentials: 'include' })
+                ]);
+
                 const usersData = usersRes.ok ? await usersRes.json() : { users: [] };
-                const users = usersData.users || [];
-
-                // Cargar resultados desde API
-                const resultsRes = await fetch('/api/results', { credentials: 'include' });
                 const resultsData = resultsRes.ok ? await resultsRes.json() : { results: [] };
-                const results = resultsData.results || [];
-
-                // Cargar preguntas desde API
-                const questionsRes = await fetch('/api/questions', { credentials: 'include' });
                 const questionsData = questionsRes.ok ? await questionsRes.json() : { questions: [] };
-                const questions = questionsData.questions || [];
+                const evalsData = evalsRes.ok ? await evalsRes.json() : { evaluations: [] };
 
-                // Calcular estadísticas
-                const passCount = results.filter((r: any) => r.score >= Math.ceil(r.totalQuestions * 0.8)).length;
+                const users = usersData.users || [];
+                const results = resultsData.results || [];
+                const allQs = questionsData.questions || [];
+                const evals = evalsData.evaluations || [];
 
-                // Procesar preguntas más falladas
-                const failedCounts: Record<string, { id: string, text: string, count: number }> = {};
-                results.forEach((res: any) => {
-                    res.failedQuestions?.forEach((f: any) => {
-                        if (!failedCounts[f.questionId]) {
-                            const q = questions.find((q: any) => q.id === f.questionId);
-                            failedCounts[f.questionId] = { id: f.questionId, text: q?.text || 'Privado', count: 0 };
-                        }
-                        failedCounts[f.questionId].count++;
-                    });
-                });
+                setQuestions(allQs);
+                setAllResults(results);
+                setEvaluations(evals);
 
-                const topFailed = Object.values(failedCounts)
-                    .sort((a, b) => b.count - a.count)
-                    .slice(0, 20);
-
-                setStats({
-                    usersCount: users.length,
-                    examCount: results.length,
-                    passRate: results.length > 0 ? Math.round((passCount / results.length) * 100) : 0,
-                    topFailed
-                });
+                processStats(results, allQs, users.length, 'ALL');
             } catch (error) {
                 console.error('Error cargando estadísticas:', error);
+            } finally {
+                setIsLoading(false);
             }
         };
-        
+
+        const processStats = (results: any[], allQs: any[], usersCount: number, category: string) => {
+            const filteredResults = category === 'ALL'
+                ? results
+                : results.filter(r => r.category === category);
+
+            const passCount = filteredResults.filter((r: any) => r.score >= Math.ceil(r.totalQuestions * 0.8)).length;
+
+            const failedCounts: Record<string, { id: string, text: string, count: number }> = {};
+            filteredResults.forEach((res: any) => {
+                res.failedQuestions?.forEach((f: any) => {
+                    if (!failedCounts[f.questionId]) {
+                        const q = allQs.find((q: any) => q.id === f.questionId);
+                        failedCounts[f.questionId] = { id: f.questionId, text: q?.text || 'Privado', count: 0 };
+                    }
+                    failedCounts[f.questionId].count++;
+                });
+            });
+
+            const topFailed = Object.values(failedCounts)
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 20);
+
+            setStats({
+                usersCount: usersCount,
+                examCount: filteredResults.length,
+                passRate: filteredResults.length > 0 ? Math.round((passCount / filteredResults.length) * 100) : 0,
+                topFailed
+            });
+        };
+
         checkAuthAndLoadStats();
     }, [router]);
+
+    useEffect(() => {
+        if (allResults.length > 0) {
+            // Re-procesar cuando cambie la categoría
+            const passCount = (allResults || []).filter((r: any) => (selectedCategory === 'ALL' || r.category === selectedCategory)).filter((r: any) => r.score >= Math.ceil(r.totalQuestions * 0.8)).length;
+            const filteredResults = selectedCategory === 'ALL' ? allResults : allResults.filter(r => r.category === selectedCategory);
+
+            const failedCounts: Record<string, { id: string, text: string, count: number }> = {};
+            filteredResults.forEach((res: any) => {
+                res.failedQuestions?.forEach((f: any) => {
+                    if (!failedCounts[f.questionId]) {
+                        const q = questions.find((q: any) => q.id === f.questionId);
+                        failedCounts[f.questionId] = { id: f.questionId, text: q?.text || 'Privado', count: 0 };
+                    }
+                    failedCounts[f.questionId].count++;
+                });
+            });
+
+            const topFailed = Object.values(failedCounts)
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 20);
+
+            setStats(prev => ({
+                ...prev,
+                examCount: filteredResults.length,
+                passRate: filteredResults.length > 0 ? Math.round((passCount / filteredResults.length) * 100) : 0,
+                topFailed
+            }));
+        }
+    }, [selectedCategory, allResults, questions]);
 
     const chartData = {
         labels: stats.topFailed.map(q => q.text.substring(0, 30) + (q.text.length > 30 ? '...' : '')),
@@ -167,11 +221,32 @@ export default function AdminDashboard() {
                 </div>
 
                 <section className="bg-white p-10 rounded-3xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-10">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
                         <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-3 tracking-tight">
                             <TrendingDown size={24} className="text-red-500" />
                             Top 20 Preguntas más Falladas
                         </h2>
+
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-medium text-gray-500">Evaluación:</label>
+                            <select
+                                className="px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none bg-white"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                                <option value="ALL">Todas las Categorías</option>
+                                {userRole === 'admin' && (
+                                    <>
+                                        <option value="A2">MOTO A2</option>
+                                        <option value="B1">CARRO B1</option>
+                                        <option value="C1">PÚBLICO C1</option>
+                                    </>
+                                )}
+                                {evaluations.map(ev => (
+                                    <option key={ev.id} value={ev.id}>{ev.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="h-[600px]">

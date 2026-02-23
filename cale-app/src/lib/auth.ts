@@ -17,6 +17,7 @@ export type SafeUser = {
   department?: string | null;
   isPro: boolean;
   proExpiresAt?: Date | null;
+  companyTag?: string | null;
 };
 
 type JWTPayload = {
@@ -65,7 +66,7 @@ export function verifyToken(token: string): string | null {
     if (parts.length !== 3) return null;
 
     const [encodedHeader, encodedPayload, signature] = parts;
-    
+
     const expectedSignature = crypto
       .createHmac('sha256', JWT_SECRET)
       .update(`${encodedHeader}.${encodedPayload}`)
@@ -77,7 +78,7 @@ export function verifyToken(token: string): string | null {
     if (signature !== expectedSignature) return null;
 
     const payload: JWTPayload = JSON.parse(base64UrlDecode(encodedPayload));
-    
+
     if (payload.exp < Date.now()) return null;
 
     return payload.userId;
@@ -92,9 +93,9 @@ export function getTokenFromRequest(req: NextRequest | Request): string | null {
 
   const cookies = cookieHeader.split(';').map(c => c.trim());
   const authCookie = cookies.find(c => c.startsWith('auth_token='));
-  
+
   if (!authCookie) return null;
-  
+
   return authCookie.split('=')[1];
 }
 
@@ -118,7 +119,8 @@ export async function getCurrentUser(req: NextRequest | Request): Promise<SafeUs
       city: true,
       department: true,
       isPro: true,
-      proExpiresAt: true
+      proExpiresAt: true,
+      companyTag: true
     }
   });
 
@@ -127,7 +129,7 @@ export async function getCurrentUser(req: NextRequest | Request): Promise<SafeUs
 
 export async function requireAuth(req: NextRequest | Request): Promise<SafeUser | NextResponse> {
   const user = await getCurrentUser(req);
-  
+
   if (!user) {
     return NextResponse.json(
       { error: 'No autenticado' },
@@ -140,7 +142,7 @@ export async function requireAuth(req: NextRequest | Request): Promise<SafeUser 
 
 export async function requireAdmin(req: NextRequest | Request): Promise<SafeUser | NextResponse> {
   const user = await getCurrentUser(req);
-  
+
   if (!user) {
     return NextResponse.json(
       { error: 'No autenticado' },
@@ -149,6 +151,26 @@ export async function requireAdmin(req: NextRequest | Request): Promise<SafeUser
   }
 
   if (user.role !== 'admin') {
+    return NextResponse.json(
+      { error: 'No autorizado' },
+      { status: 403 }
+    );
+  }
+
+  return user;
+}
+
+export async function requireAnyAdmin(req: NextRequest | Request): Promise<SafeUser | NextResponse> {
+  const user = await getCurrentUser(req);
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'No autenticado' },
+      { status: 401 }
+    );
+  }
+
+  if (user.role !== 'admin' && user.role !== 'admin_supertaxis') {
     return NextResponse.json(
       { error: 'No autorizado' },
       { status: 403 }
@@ -178,7 +200,7 @@ export function createAuthResponse(user: SafeUser, token: string): NextResponse 
 
 export function clearAuthResponse(): NextResponse {
   const response = NextResponse.json({ success: true });
-  
+
   response.cookies.set('auth_token', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -202,6 +224,7 @@ export function sanitizeUser(user: any): SafeUser {
     city: user.city || undefined,
     department: user.department || undefined,
     isPro: user.isPro || false,
-    proExpiresAt: user.proExpiresAt || undefined
+    proExpiresAt: user.proExpiresAt || undefined,
+    companyTag: user.companyTag || undefined
   };
 }

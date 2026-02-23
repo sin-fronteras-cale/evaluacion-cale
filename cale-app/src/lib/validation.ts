@@ -52,9 +52,9 @@ export function parsePaginationParams(searchParams: URLSearchParams): {
 }
 
 export function validateCategory(category: string): boolean {
-  return ['A2', 'B1', 'C1'].includes(category);
+  return typeof category === 'string' && category.length > 0;
 }
 
 export function validateRole(role: string): boolean {
-  return ['admin', 'user'].includes(role);
+  return ['admin', 'user', 'supertaxis', 'admin_supertaxis'].includes(role);
 }

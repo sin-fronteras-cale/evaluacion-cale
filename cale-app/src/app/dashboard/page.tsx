@@ -41,17 +41,18 @@ function DashboardContent() {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [isPaymentsModalOpen, setIsPaymentsModalOpen] = useState(false);
     const [payments, setPayments] = useState<Payment[]>([]);
+    const [evaluations, setEvaluations] = useState<any[]>([]);
     const [profileDraft, setProfileDraft] = useState<Partial<User> | null>(null);
     const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
     const [passwordError, setPasswordError] = useState('');
     const [passwordStatus, setPasswordStatus] = useState<'idle' | 'loading' | 'success'>('idle');
     const [priceCop, setPriceCop] = useState(20000);
-    
+
     // Derived state for limits
     const limitNextReset = useMemo(() => {
         if (!user || user.isPro) return null;
         const latestAttempt = results
-            .filter(r => r.userId === user.id)
+            .filter(r => r.userId === user.id && !evaluations.some(ev => ev.id === r.category))
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         if (latestAttempt) {
             const attemptDate = new Date(latestAttempt.date);
@@ -60,7 +61,7 @@ function DashboardContent() {
             }
         }
         return null;
-    }, [user, results]);
+    }, [user, results, evaluations]);
 
     const limitMessage = useMemo(() => {
         if (limitNextReset) return 'En modo prueba solo puedes realizar 1 evaluacion al dia.';
@@ -83,20 +84,28 @@ function DashboardContent() {
             }
 
             setUser(current);
-            
-            // Cargar resultados desde API
-            const resultsRes = await fetch('/api/results', { credentials: 'include' });
-            if (resultsRes.ok) {
+
+            // Fetch all data in parallel to optimize load time
+            const [resultsRes, paymentsRes, evalsRes] = await Promise.all([
+                fetch('/api/results', { credentials: 'include' }).catch(() => null),
+                fetch(`/api/payments?userId=${current.id}`, { credentials: 'include' }).catch(() => null),
+                fetch('/api/evaluations', { credentials: 'include', cache: 'no-store' }).catch(() => null)
+            ]);
+
+            if (resultsRes?.ok) {
                 const resultsData = await resultsRes.json();
                 const userResults = resultsData.results?.filter((r: ExamResult) => r.userId === current.id).reverse() || [];
                 setResults(userResults);
             }
-            
-            // Cargar pagos desde API
-            const paymentsRes = await fetch(`/api/payments?userId=${current.id}`, { credentials: 'include' });
-            if (paymentsRes.ok) {
+
+            if (paymentsRes?.ok) {
                 const paymentsData = await paymentsRes.json();
                 setPayments(paymentsData.payments || []);
+            }
+
+            if (evalsRes?.ok) {
+                const evalData = await evalsRes.json();
+                setEvaluations(evalData.evaluations?.filter((e: any) => e.isActive) || []);
             }
         };
         loadData();
@@ -166,7 +175,7 @@ function DashboardContent() {
             credentials: 'include',
             body: JSON.stringify(updated)
         });
-        
+
         if (res.ok) {
             const data = await res.json();
             setUser(data.user);
@@ -177,7 +186,7 @@ function DashboardContent() {
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         setPasswordError('');
-        
+
         if (!user) return;
         if (passwordData.new.length < 6) {
             setPasswordError('La nueva contraseña debe tener al menos 6 caracteres');
@@ -243,14 +252,24 @@ function DashboardContent() {
 
     const startExam = async (category: Category) => {
         if (!user) return;
-        if (!user.isPro) {
+
+        // Restriction for supertaxis users
+        if (user.role === 'supertaxis' && ['A2', 'B1', 'C1'].includes(category)) {
+            alert('Esta cuenta solo está autorizada para evaluaciones personalizadas.');
+            return;
+        }
+
+        const isCustomEval = evaluations.some(e => e.id === category);
+
+        if (!user.isPro && !isCustomEval) {
             const res = await fetch('/api/results', { credentials: 'include' });
             if (res.ok) {
                 const data = await res.json();
                 const allResults = data.results || [];
                 const today = new Date();
                 const hasAttemptToday = allResults.some((r: ExamResult) =>
-                    r.userId === user.id && isSameLocalDay(new Date(r.date), today)
+                    r.userId === user.id && isSameLocalDay(new Date(r.date), today) &&
+                    !evaluations.some(ev => ev.id === r.category)
                 );
                 if (hasAttemptToday) {
                     return;
@@ -269,8 +288,8 @@ function DashboardContent() {
     useEffect(() => {
         if (user?.id) {
             setPaymentReference(prev => {
-                 if (prev.startsWith(`PRO-${user.id}-`)) return prev;
-                 return `PRO-${user.id}-${Date.now()}`;
+                if (prev.startsWith(`PRO-${user.id}-`)) return prev;
+                return `PRO-${user.id}-${Date.now()}`;
             });
         }
     }, [user?.id]);
@@ -282,7 +301,7 @@ function DashboardContent() {
             <nav className="bg-white/95 border-b border-gray-100 px-6 py-5 flex items-center justify-between sticky top-0 z-20 backdrop-blur-2xl shadow-sm">
                 <div className="flex items-center gap-3">
                     <div className="relative w-12 h-12">
-                        <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+                        <Image src="/logo.png" alt="Logo" fill priority className="object-contain" sizes="48px" />
                     </div>
                     <span className="font-semibold text-gray-900 hidden sm:block">Sin Fronteras</span>
                 </div>
@@ -356,17 +375,45 @@ function DashboardContent() {
                         { id: 'A2', title: 'Moto A2', desc: 'Licencia para motocicletas y mototriciclos.', icon: <BookOpen className="text-blue-600" size={24} /> },
                         { id: 'B1', title: 'Carro B1', desc: 'Automóviles particulares, camionetas y camperos.', icon: <BookOpen className="text-amber-600" size={24} /> },
                         { id: 'C1', title: 'Público C1', desc: 'Vehículos de servicio público y transporte escolar.', icon: <BookOpen className="text-emerald-600" size={24} /> }
-                    ].map((cat) => (
+                    ].filter(cat => user?.role !== 'supertaxis').map((cat) => (
                         <div
                             key={cat.id}
-                            className="bg-white rounded-3xl p-8 border border-gray-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+                            className="bg-white rounded-3xl p-8 border border-gray-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
                             onClick={() => startExam(cat.id as Category)}
                         >
-                            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                {cat.icon}
+                            <div>
+                                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                    {cat.icon}
+                                </div>
+                                <h3 className="text-2xl font-semibold text-gray-900 mb-2 tracking-tight">{cat.title}</h3>
+                                <p className="text-gray-600 text-base mb-6 leading-relaxed">{cat.desc}</p>
                             </div>
-                            <h3 className="text-2xl font-semibold text-gray-900 mb-2 tracking-tight">{cat.title}</h3>
-                            <p className="text-gray-600 text-base mb-6 leading-relaxed">{cat.desc}</p>
+                            <div className="flex items-center text-blue-600 font-medium text-base group-hover:gap-2 transition-all">
+                                Iniciar Evaluación <ChevronRight size={18} />
+                            </div>
+                        </div>
+                    ))}
+
+                    {evaluations.map((ev) => (
+                        <div
+                            key={ev.id}
+                            className="bg-white rounded-3xl p-8 border border-blue-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between shadow-blue-50"
+                            onClick={() => startExam(ev.id as Category)}
+                        >
+                            <div>
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <BookOpen size={24} />
+                                    </div>
+                                    <span className="px-3 py-1 bg-gray-900 text-white text-xs font-semibold rounded-full shadow-lg">Esp.</span>
+                                </div>
+                                <h3 className="text-2xl font-semibold text-gray-900 mb-2 tracking-tight">{ev.name}</h3>
+                                <p className="text-gray-600 text-sm mb-6 leading-relaxed line-clamp-2">{ev.description || 'Evaluación personalizada'}</p>
+                                <div className="flex gap-2 mb-6">
+                                    <span className="bg-gray-100 text-gray-600 px-2.5 py-1 text-xs font-medium rounded-lg">{ev.questionCount} pags</span>
+                                    <span className="bg-gray-100 text-gray-600 px-2.5 py-1 text-xs font-medium rounded-lg">{ev.durationMinutes} min</span>
+                                </div>
+                            </div>
                             <div className="flex items-center text-blue-600 font-medium text-base group-hover:gap-2 transition-all">
                                 Iniciar Evaluación <ChevronRight size={18} />
                             </div>
@@ -481,13 +528,13 @@ function DashboardContent() {
                 </section>
 
                 <section className="mt-14">
-                     <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-6">
                         <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-2.5 tracking-tight">
                             <CreditCard size={22} className="text-gray-500" />
                             Historial de Pagos
                         </h2>
                     </div>
-                    
+
                     <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
                         {payments.length > 0 ? (
                             <div className="overflow-x-auto">
@@ -509,13 +556,12 @@ function DashboardContent() {
                                                 <td className="px-6 py-4 text-sm font-mono text-gray-600">{payment.reference}</td>
                                                 <td className="px-6 py-4 font-semibold text-gray-900">{formatCOP(payment.amountInCents / 100)}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                        payment.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' :
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${payment.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' :
                                                         payment.status === 'DECLINED' ? 'bg-red-50 text-red-700' :
-                                                        'bg-amber-50 text-amber-700'
-                                                    }`}>
-                                                        {payment.status === 'APPROVED' ? 'Aprobado' : 
-                                                         payment.status === 'DECLINED' ? 'Rechazado' : payment.status}
+                                                            'bg-amber-50 text-amber-700'
+                                                        }`}>
+                                                        {payment.status === 'APPROVED' ? 'Aprobado' :
+                                                            payment.status === 'DECLINED' ? 'Rechazado' : payment.status}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -626,7 +672,7 @@ function DashboardContent() {
                             Cambiar Contraseña
                         </button>
                     </div>
-                    
+
                     <button className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-normal mt-6 transition-all hover:scale-[1.01]">
                         Guardar cambios
                     </button>
@@ -650,7 +696,7 @@ function DashboardContent() {
                             Contraseña actualizada exitosamente
                         </div>
                     )}
-                    
+
                     <div>
                         <label className="block text-sm font-normal text-gray-900 mb-2">Contraseña Actual</label>
                         <input
@@ -717,13 +763,12 @@ function DashboardContent() {
                                     </div>
                                     <div className="text-right">
                                         <p className="font-semibold text-gray-900">{formatCOP(payment.amountInCents / 100)}</p>
-                                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold inline-block mt-1 ${
-                                                    payment.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
-                                                    payment.status === 'DECLINED' ? 'bg-red-100 text-red-700' :
-                                                    'bg-amber-100 text-amber-700'
-                                                }`}>
-                                            {payment.status === 'APPROVED' ? 'Aprobado' : 
-                                             payment.status === 'DECLINED' ? 'Rechazado' : payment.status}
+                                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold inline-block mt-1 ${payment.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                                            payment.status === 'DECLINED' ? 'bg-red-100 text-red-700' :
+                                                'bg-amber-100 text-amber-700'
+                                            }`}>
+                                            {payment.status === 'APPROVED' ? 'Aprobado' :
+                                                payment.status === 'DECLINED' ? 'Rechazado' : payment.status}
                                         </span>
                                     </div>
                                 </div>
@@ -738,7 +783,7 @@ function DashboardContent() {
 
 export default function Dashboard() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-slate-50" /> }>
+        <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
             <DashboardContent />
         </Suspense>
     );

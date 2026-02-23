@@ -2,25 +2,43 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Users, BookOpen, BarChart3, LogOut, CreditCard } from 'lucide-react';
+import { Users, BookOpen, BarChart3, LogOut, CreditCard, FileText } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 const menuItems = [
     { icon: <BarChart3 size={20} />, label: 'Analytics', href: '/admin' },
     { icon: <Users size={20} />, label: 'Usuarios', href: '/admin/users' },
-    { icon: <BookOpen size={20} />, label: 'Preguntas', href: '/admin/questions' },
+    { icon: <BookOpen size={20} />, label: 'Banco de Preguntas general', href: '/admin/questions' },
+    { icon: <FileText size={20} />, label: 'Evaluaciones personalizadas', href: '/admin/evaluations' },
     { icon: <CreditCard size={20} />, label: 'Pagos', href: '/admin/payments' },
 ];
 
 export const AdminSidebar = () => {
     const router = useRouter();
     const pathname = usePathname();
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        authClient.getCurrentUser().then(setUser);
+    }, []);
 
     const handleLogout = async () => {
         await authClient.logout();
         router.push('/');
     };
+
+    const isAdmin = user?.role === 'admin';
+    const isCompanyAdmin = user?.role === 'admin_supertaxis';
+
+    const filteredMenu = menuItems.filter(item => {
+        if (isAdmin) return true;
+        if (isCompanyAdmin) {
+            return ['Analytics', 'Usuarios', 'Evaluaciones personalizadas'].includes(item.label);
+        }
+        return false;
+    });
 
     return (
         <div className="w-64 bg-gray-900 h-screen sticky top-0 flex flex-col p-6 text-white shrink-0 border-r border-gray-800">
@@ -35,15 +53,14 @@ export const AdminSidebar = () => {
             </div>
 
             <nav className="flex-1 space-y-1.5">
-                {menuItems.map((item) => (
+                {filteredMenu.map((item) => (
                     <button
                         key={item.href}
                         onClick={() => router.push(item.href)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-normal ${
-                            pathname === item.href
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-normal ${pathname === item.href
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            }`}
                     >
                         {item.icon}
                         {item.label}

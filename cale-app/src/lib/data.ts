@@ -1,5 +1,5 @@
 
-export type Category = 'A2' | 'B1' | 'C1';
+export type Category = string;
 
 export interface Question {
   id: string;
@@ -13,7 +13,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'supertaxis' | 'admin_supertaxis';
   password?: string;
   phone?: string;
   idType?: string;
@@ -23,6 +23,7 @@ export interface User {
   policyAcceptedAt?: string;
   isPro?: boolean;
   proExpiresAt?: string;
+  companyTag?: string;
 }
 
 export interface ExamResult {

@@ -25,6 +25,7 @@ model User {
   policyAcceptedAt DateTime?
   isPro        Boolean   @default(false)
   proExpiresAt DateTime?
+  companyTag   String?   // e.g., 'supertaxis'
   results      Result[]
   payments     Payment[]
   passwordResetTokens PasswordResetToken[]
@@ -32,10 +33,13 @@ model User {
 
 model Question {
   id            String  @id @default(cuid())
-  category      String  // 'A2' | 'B1' | 'C1'
+  category      String  // 'A2' | 'B1' | 'C1' or evaluation ID
   text          String
   options       Json    // Array of strings
   correctAnswer Int
+
+  evaluationId  String?
+  evaluation    Evaluation? @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
 }
 
 model Result {
@@ -48,7 +52,25 @@ model Result {
   totalQuestions Int
   failedQuestions Json    // Array of { questionId: string, userAnswer: number }
   
+  evaluationId   String?
+  evaluation     Evaluation? @relation(fields: [evaluationId], references: [id], onDelete: SetNull)
+  
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Evaluation {
+  id              String      @id @default(cuid())
+  name            String
+  description     String?
+  durationMinutes Int         @default(60)
+  questionCount   Int         @default(40)
+  isActive        Boolean     @default(true)
+  companyTag      String?     // e.g., 'supertaxis'
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  questions       Question[]
+  results         Result[]
 }
 
 model Payment {
