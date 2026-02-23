@@ -235,7 +235,7 @@ export default function AdminDashboard() {
                                 onChange={(e) => setSelectedCategory(e.target.value)}
                             >
                                 <option value="ALL">Todas las Categorías</option>
-                                {userRole === 'admin' && (
+                                {(userRole === 'admin' || userRole === 'admin_supertaxis') && (
                                     <>
                                         <option value="A2">MOTO A2</option>
                                         <option value="B1">CARRO B1</option>

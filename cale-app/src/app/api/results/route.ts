@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
             whereClause = {
                 OR: [
                     { user: { companyTag: currentUser.companyTag } },
-                    { evaluation: { companyTag: currentUser.companyTag } }
+                    { evaluationId: { not: null } }
                 ]
             };
         } else {

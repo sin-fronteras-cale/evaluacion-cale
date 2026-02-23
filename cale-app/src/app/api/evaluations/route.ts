@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
         const where: any = {};
         if (user) {
-            if (user.role === 'supertaxis' || user.role === 'admin_supertaxis') {
+            if (user.role === 'supertaxis') {
                 where.companyTag = user.companyTag;
             }
         }
