@@ -2,13 +2,14 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Users, BookOpen, BarChart3, LogOut, CreditCard, FileText } from 'lucide-react';
+import { Users, BookOpen, BarChart3, LogOut, CreditCard, FileText, Building2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 const menuItems = [
-    { icon: <BarChart3 size={20} />, label: 'Analytics', href: '/admin' },
+    { icon: <BarChart3 size={20} />, label: 'Analytics Global', href: '/admin' },
+    { icon: <Building2 size={20} />, label: 'Dashboard Empresa', href: '/admin/company' },
     { icon: <FileText size={20} />, label: 'Resultados', href: '/admin/results' },
     { icon: <Users size={20} />, label: 'Usuarios', href: '/admin/users' },
     { icon: <BookOpen size={20} />, label: 'Realizar Evaluación', href: '/dashboard' },
@@ -37,7 +38,7 @@ export const AdminSidebar = () => {
     const filteredMenu = menuItems.filter(item => {
         if (isAdmin) return true;
         if (isCompanyAdmin) {
-            return ['Analytics', 'Resultados', 'Usuarios', 'Realizar Evaluación', 'Evaluaciones personalizadas'].includes(item.label);
+            return ['Analytics Global', 'Dashboard Empresa', 'Resultados', 'Usuarios', 'Realizar Evaluación', 'Evaluaciones personalizadas'].includes(item.label);
         }
         return false;
     });
