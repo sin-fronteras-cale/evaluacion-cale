@@ -375,7 +375,7 @@ function DashboardContent() {
                         { id: 'A2', title: 'Moto A2', desc: 'Licencia para motocicletas y mototriciclos.', icon: <BookOpen className="text-blue-600" size={24} /> },
                         { id: 'B1', title: 'Carro B1', desc: 'Automóviles particulares, camionetas y camperos.', icon: <BookOpen className="text-amber-600" size={24} /> },
                         { id: 'C1', title: 'Público C1', desc: 'Vehículos de servicio público y transporte escolar.', icon: <BookOpen className="text-emerald-600" size={24} /> }
-                    ].filter(cat => user?.role !== 'supertaxis').map((cat) => (
+                    ].filter(cat => user?.role !== 'supertaxis' && user?.role !== 'admin_supertaxis').map((cat) => (
                         <div
                             key={cat.id}
                             className="bg-white rounded-3xl p-8 border border-gray-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
@@ -421,55 +421,57 @@ function DashboardContent() {
                     ))}
                 </div>
 
-                {!user.isPro && (
-                    <section id="pro-offer" className="mb-16">
-                        <div className="bg-gradient-to-r from-white via-blue-50/50 to-white rounded-[2rem] p-10 md:p-14 text-gray-900 shadow-xl relative overflow-hidden border border-gray-200">
-                            <div className="absolute top-0 right-0 w-80 h-80 bg-blue-100/40 rounded-full -mr-32 -mt-32 blur-3xl" />
-                            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-                                <div className="max-w-xl text-center md:text-left">
-                                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gray-900 text-white text-sm font-medium mb-5">
-                                        <Zap size={16} className="fill-current" />
-                                        OFERTA ESPECIAL
-                                    </div>
-                                    <h2 className="text-4xl md:text-5xl font-semibold mb-5 tracking-tight">¡Vuélvete PRO y acelera tu aprendizaje!</h2>
-                                    <p className="text-gray-600 text-lg mb-8 leading-relaxed">
-                                        Desbloquea simulacros completos de 40 preguntas con tiempo real de 50 minutos.
-                                        Estás en modo prueba con 15 preguntas y 15 minutos. Prepárate como un experto y asegura tu licencia.
-                                    </p>
-                                    <ul className="grid grid-cols-2 gap-4 mb-8 text-base text-gray-700">
-                                        <li className="flex items-center gap-2">✓ Exámenes de 40 preguntas</li>
-                                        <li className="flex items-center gap-2">✓ Simulacros de 50 min</li>
-                                        <li className="flex items-center gap-2">✓ Historial ilimitado</li>
-                                        <li className="flex items-center gap-2">✓ Reportes detallados</li>
-                                    </ul>
-                                </div>
-                                <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-xl w-full max-w-sm flex flex-col items-center">
-                                    <div className="w-full flex flex-col items-center">
-                                        <p className="text-gray-600 font-medium text-sm tracking-wide mb-2 text-center">Pago Único</p>
-                                        <div className="flex items-end justify-center gap-1 mb-4">
-                                            <span className="text-5xl md:text-6xl font-semibold tracking-tight text-gray-900">${formatCOP(priceCop)}</span>
-                                            <span className="text-gray-400 font-medium mb-2 text-base">COP</span>
+                {
+                    !user.isPro && (
+                        <section id="pro-offer" className="mb-16">
+                            <div className="bg-gradient-to-r from-white via-blue-50/50 to-white rounded-[2rem] p-10 md:p-14 text-gray-900 shadow-xl relative overflow-hidden border border-gray-200">
+                                <div className="absolute top-0 right-0 w-80 h-80 bg-blue-100/40 rounded-full -mr-32 -mt-32 blur-3xl" />
+                                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                                    <div className="max-w-xl text-center md:text-left">
+                                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gray-900 text-white text-sm font-medium mb-5">
+                                            <Zap size={16} className="fill-current" />
+                                            OFERTA ESPECIAL
                                         </div>
-                                        <div className="w-full h-px bg-gray-200 my-5" />
-                                        <div className="w-full flex justify-center">
-                                            <div className="w-full max-w-[260px]">
-                                                <WompiWidget
-                                                    amount={priceCop}
-                                                    publicKey={wompiPublicKey}
-                                                    reference={paymentReference}
-                                                    redirectUrl={paymentRedirectUrl}
-                                                />
+                                        <h2 className="text-4xl md:text-5xl font-semibold mb-5 tracking-tight">¡Vuélvete PRO y acelera tu aprendizaje!</h2>
+                                        <p className="text-gray-600 text-lg mb-8 leading-relaxed">
+                                            Desbloquea simulacros completos de 40 preguntas con tiempo real de 50 minutos.
+                                            Estás en modo prueba con 15 preguntas y 15 minutos. Prepárate como un experto y asegura tu licencia.
+                                        </p>
+                                        <ul className="grid grid-cols-2 gap-4 mb-8 text-base text-gray-700">
+                                            <li className="flex items-center gap-2">✓ Exámenes de 40 preguntas</li>
+                                            <li className="flex items-center gap-2">✓ Simulacros de 50 min</li>
+                                            <li className="flex items-center gap-2">✓ Historial ilimitado</li>
+                                            <li className="flex items-center gap-2">✓ Reportes detallados</li>
+                                        </ul>
+                                    </div>
+                                    <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-xl w-full max-w-sm flex flex-col items-center">
+                                        <div className="w-full flex flex-col items-center">
+                                            <p className="text-gray-600 font-medium text-sm tracking-wide mb-2 text-center">Pago Único</p>
+                                            <div className="flex items-end justify-center gap-1 mb-4">
+                                                <span className="text-5xl md:text-6xl font-semibold tracking-tight text-gray-900">${formatCOP(priceCop)}</span>
+                                                <span className="text-gray-400 font-medium mb-2 text-base">COP</span>
+                                            </div>
+                                            <div className="w-full h-px bg-gray-200 my-5" />
+                                            <div className="w-full flex justify-center">
+                                                <div className="w-full max-w-[260px]">
+                                                    <WompiWidget
+                                                        amount={priceCop}
+                                                        publicKey={wompiPublicKey}
+                                                        reference={paymentReference}
+                                                        redirectUrl={paymentRedirectUrl}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
+                                        <p className="mt-5 text-xs text-gray-500 text-center leading-relaxed">
+                                            Transacción segura procesada por Wompi.
+                                        </p>
                                     </div>
-                                    <p className="mt-5 text-xs text-gray-500 text-center leading-relaxed">
-                                        Transacción segura procesada por Wompi.
-                                    </p>
                                 </div>
                             </div>
-                        </div>
-                    </section>
-                )}
+                        </section>
+                    )
+                }
 
                 <section>
                     <div className="flex items-center justify-between mb-6">
@@ -576,7 +578,7 @@ function DashboardContent() {
                         )}
                     </div>
                 </section>
-            </main>
+            </main >
 
             <Modal
                 isOpen={isProfileOpen}
@@ -777,7 +779,7 @@ function DashboardContent() {
                     )}
                 </div>
             </Modal>
-        </div>
+        </div >
     );
 }
 

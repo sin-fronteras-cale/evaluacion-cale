@@ -19,7 +19,12 @@ export async function GET(req: NextRequest) {
         if (currentUser.role === 'admin') {
             whereClause = {};
         } else if (currentUser.role === 'admin_supertaxis') {
-            whereClause = { user: { companyTag: currentUser.companyTag } };
+            whereClause = {
+                OR: [
+                    { user: { companyTag: currentUser.companyTag } },
+                    { evaluation: { companyTag: currentUser.companyTag } }
+                ]
+            };
         } else {
             whereClause = { userId: currentUser.id };
         }
@@ -65,12 +70,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
         }
 
+        const isStandard = ['A2', 'B1', 'C1'].includes(result.category);
+
         const savedResult = await prisma.result.create({
             data: {
                 id: result.id,
                 userId: result.userId,
                 userName: result.userName,
                 category: result.category,
+                evaluationId: !isStandard ? result.category : null,
                 date: new Date(result.date),
                 score: result.score,
                 totalQuestions: result.totalQuestions,

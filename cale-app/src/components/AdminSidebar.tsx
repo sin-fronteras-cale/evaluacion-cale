@@ -10,6 +10,7 @@ import Image from 'next/image';
 const menuItems = [
     { icon: <BarChart3 size={20} />, label: 'Analytics', href: '/admin' },
     { icon: <Users size={20} />, label: 'Usuarios', href: '/admin/users' },
+    { icon: <BookOpen size={20} />, label: 'Realizar Evaluación', href: '/dashboard' },
     { icon: <BookOpen size={20} />, label: 'Banco de Preguntas general', href: '/admin/questions' },
     { icon: <FileText size={20} />, label: 'Evaluaciones personalizadas', href: '/admin/evaluations' },
     { icon: <CreditCard size={20} />, label: 'Pagos', href: '/admin/payments' },
@@ -35,7 +36,7 @@ export const AdminSidebar = () => {
     const filteredMenu = menuItems.filter(item => {
         if (isAdmin) return true;
         if (isCompanyAdmin) {
-            return ['Analytics', 'Usuarios', 'Evaluaciones personalizadas'].includes(item.label);
+            return ['Analytics', 'Usuarios', 'Realizar Evaluación', 'Evaluaciones personalizadas'].includes(item.label);
         }
         return false;
     });
