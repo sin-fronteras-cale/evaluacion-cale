@@ -17,7 +17,7 @@ export default function EvaluationsManagement() {
     useEffect(() => {
         const checkAuthAndLoad = async () => {
             const user = await authClient.getCurrentUser();
-            if (!user || user.role !== 'admin') {
+            if (!user || (user.role !== 'admin' && user.role !== 'admin_supertaxis')) {
                 router.push('/');
                 return;
             }

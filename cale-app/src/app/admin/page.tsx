@@ -260,6 +260,55 @@ export default function AdminDashboard() {
                         )}
                     </div>
                 </section>
+
+                <section className="mt-12 bg-white p-10 rounded-3xl border border-gray-200 shadow-sm">
+                    <h2 className="text-2xl font-semibold text-gray-900 mb-8 tracking-tight">
+                        Resumen de Evaluaciones Personalizadas
+                    </h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-gray-100 text-gray-400 text-sm font-medium">
+                                    <th className="pb-4 font-semibold uppercase tracking-wider">Evaluación</th>
+                                    <th className="pb-4 font-semibold uppercase tracking-wider text-center">Intentos</th>
+                                    <th className="pb-4 font-semibold uppercase tracking-wider text-center">Aprobación</th>
+                                    <th className="pb-4 font-semibold uppercase tracking-wider text-right">Promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {evaluations.map(ev => {
+                                    const evResults = allResults.filter(r => r.category === ev.id);
+                                    const attempts = evResults.length;
+                                    const passes = evResults.filter(r => r.score >= Math.ceil(r.totalQuestions * 0.8)).length;
+                                    const avgScore = attempts > 0
+                                        ? Math.round((evResults.reduce((acc, r) => acc + r.score, 0) / evResults.reduce((acc, r) => acc + r.totalQuestions, 0)) * 100)
+                                        : 0;
+                                    const passRate = attempts > 0 ? Math.round((passes / attempts) * 100) : 0;
+
+                                    return (
+                                        <tr key={ev.id} className="text-gray-700">
+                                            <td className="py-5 font-medium text-gray-900">{ev.name}</td>
+                                            <td className="py-5 text-center">{attempts}</td>
+                                            <td className="py-5 text-center">
+                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${passRate >= 70 ? 'bg-emerald-50 text-emerald-700' :
+                                                        passRate >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+                                                    }`}>
+                                                    {passRate}%
+                                                </span>
+                                            </td>
+                                            <td className="py-5 text-right font-mono text-gray-500">{avgScore}%</td>
+                                        </tr>
+                                    );
+                                })}
+                                {evaluations.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="py-10 text-center text-gray-400">No hay evaluaciones personalizadas registradas.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </main>
         </div>
     );

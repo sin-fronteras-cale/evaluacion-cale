@@ -22,7 +22,7 @@ export default function EvaluationQuestions({ params }: { params: Promise<{ id: 
     useEffect(() => {
         const checkAuthAndLoad = async () => {
             const user = await authClient.getCurrentUser();
-            if (!user || user.role !== 'admin') {
+            if (!user || (user.role !== 'admin' && user.role !== 'admin_supertaxis')) {
                 router.push('/');
                 return;
             }
