@@ -220,51 +220,12 @@ export default function AdminDashboard() {
                     ))}
                 </div>
 
-                <section className="bg-white p-10 rounded-3xl border border-gray-200 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
-                        <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-3 tracking-tight">
-                            <TrendingDown size={24} className="text-red-500" />
-                            Top 20 Preguntas más Falladas
+                <section className="mb-12 bg-white p-10 rounded-3xl border border-gray-200 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                        <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">
+                            Analíticas de Evaluaciones Personalizadas
                         </h2>
-
-                        <div className="flex items-center gap-3">
-                            <label className="text-sm font-medium text-gray-500">Evaluación:</label>
-                            <select
-                                className="px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none bg-white"
-                                value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.target.value)}
-                            >
-                                <option value="ALL">Todas las Categorías</option>
-                                {(userRole === 'admin' || userRole === 'admin_supertaxis') && (
-                                    <>
-                                        <option value="A2">MOTO A2</option>
-                                        <option value="B1">CARRO B1</option>
-                                        <option value="C1">PÚBLICO C1</option>
-                                    </>
-                                )}
-                                {evaluations.map(ev => (
-                                    <option key={ev.id} value={ev.id}>{ev.name}</option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
-
-                    <div className="h-[600px]">
-                        {stats.topFailed.length > 0 ? (
-                            <Bar data={chartData} options={chartOptions} />
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                                <BarChart3 size={48} className="mb-4 opacity-20" />
-                                <p>No hay suficientes datos para generar gráficas.</p>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                <section className="mt-12 bg-white p-10 rounded-3xl border border-gray-200 shadow-sm">
-                    <h2 className="text-2xl font-semibold text-gray-900 mb-8 tracking-tight">
-                        Resumen de Evaluaciones Personalizadas
-                    </h2>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
@@ -286,17 +247,17 @@ export default function AdminDashboard() {
                                     const passRate = attempts > 0 ? Math.round((passes / attempts) * 100) : 0;
 
                                     return (
-                                        <tr key={ev.id} className="text-gray-700">
+                                        <tr key={ev.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="py-5 font-medium text-gray-900">{ev.name}</td>
-                                            <td className="py-5 text-center">{attempts}</td>
+                                            <td className="py-5 text-center font-semibold">{attempts}</td>
                                             <td className="py-5 text-center">
                                                 <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${passRate >= 70 ? 'bg-emerald-50 text-emerald-700' :
-                                                        passRate >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+                                                    passRate >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
                                                     }`}>
                                                     {passRate}%
                                                 </span>
                                             </td>
-                                            <td className="py-5 text-right font-mono text-gray-500">{avgScore}%</td>
+                                            <td className="py-5 text-right font-mono text-gray-500 font-bold">{avgScore}%</td>
                                         </tr>
                                     );
                                 })}
@@ -309,6 +270,48 @@ export default function AdminDashboard() {
                         </table>
                     </div>
                 </section>
+
+                <section className="bg-white p-10 rounded-3xl border border-gray-200 shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+                        <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-3 tracking-tight">
+                            <TrendingDown size={24} className="text-red-500" />
+                            Top 20 Preguntas más Falladas
+                        </h2>
+
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-medium text-gray-500">Filtrar por:</label>
+                            <select
+                                className="px-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-600 outline-none bg-white font-medium"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                                <option value="ALL">Todas las Categorías</option>
+                                {(userRole === 'admin' || userRole === 'admin_supertaxis') && (
+                                    <>
+                                        <option value="A2">MOTO A2</option>
+                                        <option value="B1">CARRO B1</option>
+                                        <option value="C1">PÚBLICO C1</option>
+                                    </>
+                                )}
+                                {evaluations.map(ev => (
+                                    <option key={ev.id} value={ev.id}>{ev.name} (Especial)</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="h-[600px]">
+                        {stats.topFailed.length > 0 ? (
+                            <Bar data={chartData} options={chartOptions} />
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                <BarChart3 size={48} className="mb-4 opacity-20" />
+                                <p>No hay suficientes datos para generar gráficas.</p>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
             </main>
         </div>
     );

@@ -35,7 +35,10 @@ export async function GET(req: NextRequest) {
                 take: limit,
                 skip,
                 orderBy: { date: 'desc' },
-                include: { user: { select: { name: true } } }
+                include: {
+                    user: { select: { name: true } },
+                    evaluation: { select: { name: true } }
+                }
             }),
             prisma.result.count({ where: whereClause })
         ]);
