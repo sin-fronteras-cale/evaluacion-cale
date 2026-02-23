@@ -47,11 +47,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const body = await req.json();
         const { name, description, durationMinutes, questionCount, isActive, companyTag } = body;
 
-        // Check access
+        // Allow any admin to update evaluations
         const existing = await prisma.evaluation.findUnique({ where: { id } });
-        if (existing && currentUser.role === 'admin_supertaxis' && existing.companyTag !== currentUser.companyTag) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-        }
 
         const evaluation = await prisma.evaluation.update({
             where: { id },
@@ -79,11 +76,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         if (authResult instanceof NextResponse) return authResult;
         const currentUser = authResult;
 
-        // Check access
+        // Allow any admin to delete evaluations
         const existing = await prisma.evaluation.findUnique({ where: { id } });
-        if (existing && currentUser.role === 'admin_supertaxis' && existing.companyTag !== currentUser.companyTag) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-        }
 
         console.log(`Attempting to delete evaluation: ${id}`);
 

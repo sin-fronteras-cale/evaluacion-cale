@@ -31,10 +31,14 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Filter by companyTag if admin_supertaxis
+        // Filter by companyTag only for regular company users if needed
+        // but for admin_supertaxis we allow seeing all to have full analytics
         const where: any = {};
         if (currentUser.role === 'admin_supertaxis') {
-            where.companyTag = currentUser.companyTag;
+            // Option 1: Limit to company users (current behavior)
+            // Option 2: Allow all (to match "todas las analiticas")
+            // where.companyTag = currentUser.companyTag; 
+            // We will leave 'where' empty for admin_supertaxis to show "full analytics"
         }
 
         const [users, total] = await Promise.all([

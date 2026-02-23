@@ -16,15 +16,8 @@ export async function GET(req: NextRequest) {
 
         // Admin can see all, admin_supertaxis sees company results, regular users only their own
         let whereClause: any = {};
-        if (currentUser.role === 'admin') {
+        if (currentUser.role === 'admin' || currentUser.role === 'admin_supertaxis') {
             whereClause = {};
-        } else if (currentUser.role === 'admin_supertaxis') {
-            whereClause = {
-                OR: [
-                    { user: { companyTag: currentUser.companyTag } },
-                    { evaluationId: { not: null } }
-                ]
-            };
         } else {
             whereClause = { userId: currentUser.id };
         }
