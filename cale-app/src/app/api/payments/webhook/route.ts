@@ -4,11 +4,7 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-const EVENTS_SECRET = process.env.WOMPI_EVENTS_SECRET;
-
-if (!EVENTS_SECRET) {
-    throw new Error('WOMPI_EVENTS_SECRET debe estar configurado en las variables de entorno');
-}
+// Webhook secret defined inside handler to avoid build crashes
 
 type WompiTransaction = {
     id: string;
@@ -38,6 +34,7 @@ const parseTransaction = (payload: WompiWebhookPayload): WompiTransaction | null
 
 export async function POST(req: Request) {
     try {
+        const EVENTS_SECRET = process.env.WOMPI_EVENTS_SECRET;
         // Verificar que el secret esté configurado
         if (!EVENTS_SECRET) {
             console.error('WOMPI_EVENTS_SECRET no está configurado');
@@ -69,7 +66,7 @@ export async function POST(req: Request) {
 
         const reference = transaction.reference || '';
         const userId = reference.split('-')[1] || null;
-        
+
         let user = null;
         if (userId) {
             user = await prisma.user.findUnique({ where: { id: userId } });
