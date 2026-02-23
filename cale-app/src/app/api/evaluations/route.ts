@@ -10,9 +10,10 @@ export async function GET(req: NextRequest) {
 
         const where: any = {};
         if (user) {
-            if (user.role === 'supertaxis') {
-                where.companyTag = user.companyTag;
-            } else if (user.role === 'admin_supertaxis') {
+            if (user.role === 'supertaxis' || user.role === 'admin_supertaxis') {
+                if (!user.companyTag) {
+                    return NextResponse.json({ evaluations: [] });
+                }
                 where.companyTag = user.companyTag;
             }
         }

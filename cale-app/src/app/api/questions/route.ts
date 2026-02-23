@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
             : {};
 
         if (authResult.role === 'admin_supertaxis') {
+            if (!authResult.companyTag) {
+                return NextResponse.json({ questions: [] });
+            }
             whereClause = {
                 evaluation: {
                     companyTag: authResult.companyTag

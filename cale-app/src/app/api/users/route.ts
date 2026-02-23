@@ -31,10 +31,13 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Filter by companyTag only for regular company users if needed
-        // but for admin_supertaxis we allow seeing all to have full analytics
+        // Filter by companyTag for company admins
         const where: any = {};
         if (currentUser.role === 'admin_supertaxis') {
+            if (!currentUser.companyTag) {
+                // Security: if they have no tag, they see NO ONE
+                return NextResponse.json({ users: [], total: 0, limit, skip });
+            }
             where.companyTag = currentUser.companyTag;
         }
 

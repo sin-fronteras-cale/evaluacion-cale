@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
         if (currentUser.role === 'admin') {
             whereClause = {};
         } else if (currentUser.role === 'admin_supertaxis') {
+            if (!currentUser.companyTag) {
+                return NextResponse.json({ results: [], total: 0, limit, skip });
+            }
             whereClause = {
                 OR: [
                     { evaluation: { companyTag: currentUser.companyTag } },
