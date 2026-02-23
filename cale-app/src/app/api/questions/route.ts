@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         if (authResult.role === 'admin_supertaxis') {
             whereClause = {
                 evaluation: {
-                    name: 'Supertaxis'
+                    companyTag: authResult.companyTag
                 }
             };
         }
