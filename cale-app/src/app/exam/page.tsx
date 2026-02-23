@@ -56,14 +56,15 @@ function ExamContent() {
                 return;
             }
 
-            setIsPro(user.isPro || false);
+            const isProUser = user.isPro || user.role === 'admin' || user.role === 'admin_supertaxis';
+            setIsPro(isProUser);
 
             // Parallelize all initial network requests to optimize load times
             const [evalRes, questionsRes, recentIdsList, resultsDataLimit] = await Promise.all([
                 fetch(`/api/evaluations/${category}`, { credentials: 'include' }).catch(() => null),
                 fetch(`/api/questions?category=${category}`, { credentials: 'include' }).catch(() => null),
                 getRecentQuestionIds(user.id, category, 3).catch(() => []),
-                !user.isPro ? fetch('/api/results', { credentials: 'include' }).then(res => res.ok ? res.json() : null).catch(() => null) : Promise.resolve(null)
+                !isProUser ? fetch('/api/results', { credentials: 'include' }).then(res => res.ok ? res.json() : null).catch(() => null) : Promise.resolve(null)
             ]);
 
             let isCustomEval = false;

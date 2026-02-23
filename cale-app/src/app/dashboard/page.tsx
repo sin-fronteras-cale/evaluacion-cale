@@ -83,7 +83,8 @@ function DashboardContent() {
                 return;
             }
 
-            setUser(current);
+            const isProUser = current.isPro || current.role === 'admin' || current.role === 'admin_supertaxis';
+            setUser({ ...current, isPro: isProUser });
 
             // Fetch all data in parallel to optimize load time
             const [resultsRes, paymentsRes, evalsRes] = await Promise.all([
@@ -375,7 +376,7 @@ function DashboardContent() {
                         { id: 'A2', title: 'Moto A2', desc: 'Licencia para motocicletas y mototriciclos.', icon: <BookOpen className="text-blue-600" size={24} /> },
                         { id: 'B1', title: 'Carro B1', desc: 'Automóviles particulares, camionetas y camperos.', icon: <BookOpen className="text-amber-600" size={24} /> },
                         { id: 'C1', title: 'Público C1', desc: 'Vehículos de servicio público y transporte escolar.', icon: <BookOpen className="text-emerald-600" size={24} /> }
-                    ].filter(cat => user?.role !== 'supertaxis' && user?.role !== 'admin_supertaxis').map((cat) => (
+                    ].filter(cat => user?.role !== 'supertaxis').map((cat) => (
                         <div
                             key={cat.id}
                             className="bg-white rounded-3xl p-8 border border-gray-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
