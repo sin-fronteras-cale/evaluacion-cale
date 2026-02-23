@@ -12,6 +12,8 @@ export async function GET(req: NextRequest) {
         if (user) {
             if (user.role === 'supertaxis') {
                 where.companyTag = user.companyTag;
+            } else if (user.role === 'admin_supertaxis') {
+                where.name = 'Supertaxis';
             }
         }
 

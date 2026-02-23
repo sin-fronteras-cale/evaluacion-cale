@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin, requireAuth } from '@/lib/auth';
+import { requireAdmin, requireAuth, requireAnyAdmin } from '@/lib/auth';
 import { validateCategory, parsePaginationParams } from '@/lib/validation';
 import { Question } from '@/lib/data';
 
@@ -13,10 +13,18 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const category = searchParams.get('category');
-        
-        const whereClause = category && validateCategory(category) 
-            ? { category } 
+
+        let whereClause: any = category && validateCategory(category)
+            ? { category }
             : {};
+
+        if (authResult.role === 'admin_supertaxis') {
+            whereClause = {
+                evaluation: {
+                    name: 'Supertaxis'
+                }
+            };
+        }
 
         const questions = await prisma.question.findMany({
             where: whereClause,
@@ -31,7 +39,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    const authResult = await requireAdmin(req);
+    const authResult = await requireAnyAdmin(req);
     if (authResult instanceof NextResponse) return authResult;
 
     try {

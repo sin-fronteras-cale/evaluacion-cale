@@ -71,9 +71,9 @@ export default function CompanyAnalytics() {
                 const questionsData = await questionsRes.json();
                 const evalsData = await evalsRes.json();
 
-                const companyUsers = usersData.users?.filter((u: any) => u.companyTag === user.companyTag) || [];
-                const companyResults = resultsData.results?.filter((r: any) => r.user?.companyTag === user.companyTag) || [];
-                const companyEvals = evalsData.evaluations?.filter((ev: any) => ev.companyTag === user.companyTag) || [];
+                const companyUsers = usersData.users || [];
+                const companyResults = resultsData.results || [];
+                const companyEvals = evalsData.evaluations || [];
                 const allQs = questionsData.questions || [];
 
                 setEvaluations(companyEvals);
