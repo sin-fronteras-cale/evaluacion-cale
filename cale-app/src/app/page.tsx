@@ -36,12 +36,13 @@ export default function LandingPage() {
       console.log('[LandingPage] Verificando autenticación...');
       const current = await authClient.getCurrentUser();
       console.log('[LandingPage] Usuario actual:', current);
-      
+
       if (current) {
         console.log('[LandingPage] Usuario autenticado, redirigiendo...');
-        if (current.role === 'admin') {
-          console.log('[LandingPage] Es admin, redirigiendo a /admin');
-          router.push('/admin');
+        if (current.role === 'admin' || current.role === 'admin_supertaxis') {
+          const target = current.role === 'admin_supertaxis' ? '/admin/company' : '/admin';
+          console.log(`[LandingPage] Es ${current.role}, redirigiendo a ${target}`);
+          router.push(target);
         } else {
           console.log('[LandingPage] Es usuario regular, redirigiendo a /dashboard');
           router.push('/dashboard');
@@ -55,15 +56,15 @@ export default function LandingPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isLoading) {
       console.log('[handleLogin] Ya hay un proceso de login en curso, ignorando...');
       return;
     }
-    
+
     setError('');
     setIsLoading(true);
-    
+
     console.log('🚀 [handleLogin] Iniciando proceso de login...');
     console.log('📧 [handleLogin] Email:', email);
     console.log('🔑 [handleLogin] Password length:', password.length);
@@ -72,7 +73,7 @@ export default function LandingPage() {
       console.log('📡 [handleLogin] Llamando authClient.login...');
       const result = await authClient.login(email, password);
       console.log('📨 [handleLogin] Resultado completo:', result);
-      
+
       if (!result.success) {
         console.error('❌ [handleLogin] Login FALLÓ');
         console.error('❌ [handleLogin] Error específico:', result.error);
@@ -83,16 +84,19 @@ export default function LandingPage() {
 
       if (result.user) {
         console.log('✅ [handleLogin] Login exitoso, usuario:', result.user);
-        
+
         // Verificar que la sesión esté activa antes de redirigir
         try {
           console.log('🔍 [handleLogin] Verificando sesión...');
           const verifyRes = await fetch('/api/auth/me', { credentials: 'include' });
           console.log('🔍 [handleLogin] Verificación status:', verifyRes.status);
-          
+
           if (verifyRes.ok) {
             console.log('✅ [handleLogin] Sesión verificada, redirigiendo...');
-            const targetUrl = result.user.role === 'admin' ? '/admin' : '/dashboard';
+            let targetUrl = '/dashboard';
+            if (result.user.role === 'admin') targetUrl = '/admin';
+            else if (result.user.role === 'admin_supertaxis') targetUrl = '/admin/company';
+
             console.log('🚀 [handleLogin] Redirigiendo a:', targetUrl);
             window.location.href = targetUrl;
           } else {
@@ -120,7 +124,7 @@ export default function LandingPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!policyAcceptedAt) {
       setError('Debes leer y aceptar la politica de tratamiento de datos');
       return;
@@ -148,13 +152,13 @@ export default function LandingPage() {
         policyAcceptedAt
       })
     });
-    
+
     if (!registerRes.ok) {
       const data = await registerRes.json();
       setError(data?.error || 'Error al registrar usuario');
       return;
     }
-    
+
     // El registro exitoso ya crea la sesión automáticamente
     router.push('/dashboard');
   };
@@ -210,7 +214,7 @@ export default function LandingPage() {
               priority
             />
           </motion.div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -428,7 +432,7 @@ export default function LandingPage() {
               placeholder="••••••••"
             />
           </div>
-          <button 
+          <button
             type="submit"
             disabled={isLoading}
             className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-normal transition-all mt-6 hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
