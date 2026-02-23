@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
             whereClause = {};
         } else if (currentUser.role === 'admin_supertaxis') {
             whereClause = {
-                evaluation: {
-                    name: 'Supertaxis'
-                }
+                OR: [
+                    { evaluation: { companyTag: currentUser.companyTag } },
+                    { user: { companyTag: currentUser.companyTag } }
+                ]
             };
         } else {
             whereClause = { userId: currentUser.id };
@@ -73,6 +74,22 @@ export async function POST(req: NextRequest) {
         }
 
         const isStandard = ['A2', 'B1', 'C1'].includes(result.category);
+        const evalId = !isStandard ? result.category : null;
+
+        // If it's a custom evaluation, check if it has a companyTag to assign to the user
+        if (evalId) {
+            const evaluation = await prisma.evaluation.findUnique({
+                where: { id: evalId },
+                select: { companyTag: true }
+            });
+
+            if (evaluation?.companyTag) {
+                await prisma.user.update({
+                    where: { id: currentUser.id },
+                    data: { companyTag: evaluation.companyTag }
+                });
+            }
+        }
 
         const savedResult = await prisma.result.create({
             data: {
@@ -80,7 +97,7 @@ export async function POST(req: NextRequest) {
                 userId: result.userId,
                 userName: result.userName,
                 category: result.category,
-                evaluationId: !isStandard ? result.category : null,
+                evaluationId: evalId,
                 date: new Date(result.date),
                 score: result.score,
                 totalQuestions: result.totalQuestions,

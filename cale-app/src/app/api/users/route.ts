@@ -35,13 +35,7 @@ export async function GET(req: NextRequest) {
         // but for admin_supertaxis we allow seeing all to have full analytics
         const where: any = {};
         if (currentUser.role === 'admin_supertaxis') {
-            where.results = {
-                some: {
-                    evaluation: {
-                        name: 'Supertaxis'
-                    }
-                }
-            };
+            where.companyTag = currentUser.companyTag;
         }
 
         const [users, total] = await Promise.all([

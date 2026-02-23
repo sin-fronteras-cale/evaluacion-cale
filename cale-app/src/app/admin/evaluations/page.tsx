@@ -166,6 +166,11 @@ export default function EvaluationsManagement() {
                             <input type="number" required min="1" className="w-full px-4 py-2 border rounded-xl" value={currentEval?.questionCount || ''} onChange={e => setCurrentEval({ ...currentEval, questionCount: parseInt(e.target.value) })} />
                         </div>
                     </div>
+                    <div>
+                        <label className="block text-sm mb-1.5 font-medium">Etiqueta de Empresa (Opcional)</label>
+                        <input className="w-full px-4 py-2 border rounded-xl" placeholder="ej: supertaxis" value={currentEval?.companyTag || ''} onChange={e => setCurrentEval({ ...currentEval, companyTag: e.target.value })} />
+                        <p className="text-xs text-blue-600/70 mt-1 font-medium">✨ Al finalizar, el alumno será asignado a esta empresa automáticamente.</p>
+                    </div>
                     <div className="pt-2">
                         <label className="flex items-center gap-2">
                             <input type="checkbox" checked={currentEval?.isActive ?? true} onChange={e => setCurrentEval({ ...currentEval, isActive: e.target.checked })} className="w-4 h-4 rounded text-blue-600" />
