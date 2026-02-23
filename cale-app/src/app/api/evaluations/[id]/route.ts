@@ -24,8 +24,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Evaluación no encontrada' }, { status: 404 });
         }
 
-        // Check companyTag access if user is company admin
-        if (user && user.role === 'admin_supertaxis' && evaluation.companyTag !== user.companyTag) {
+        // Allow any admin to see evaluations
+        if (user && user.role === 'admin_supertaxis' && evaluation.companyTag && evaluation.companyTag !== user.companyTag) {
+            // Keep restriction only for evaluations belonging to OTHER companies
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
 

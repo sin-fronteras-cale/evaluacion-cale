@@ -104,7 +104,7 @@ function ExamContent() {
             const questionsData = await questionsRes.json();
             const q: Question[] = questionsData.questions || [];
 
-            const count = isCustomEval ? customCount : (user.isPro ? 40 : 15);
+            const count = isCustomEval ? customCount : (isProUser ? 40 : 15);
             const avoidSet = new Set(recentIdsList);
             const filteredPool = q.filter((item: Question) => !avoidSet.has(item.id));
             const poolToUse = filteredPool.length >= count ? filteredPool : q;
@@ -135,8 +135,9 @@ function ExamContent() {
 
             setQuestions(finalized);
 
-            // 4. Set timer
-            setTimeLeft(isCustomEval ? customTime : (user.isPro ? 3000 : 900));
+            // 4. Set timer (Custom evaluation settings always take priority)
+            const finalTime = isCustomEval ? customTime : (isProUser ? 3000 : 900);
+            setTimeLeft(finalTime);
         };
         loadQuestions();
 
